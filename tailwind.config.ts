@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,13 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				"gradient-1-start": "#9b87f5",
+				"gradient-1-end": "#8B5CF6",
+				"gradient-2-start": "#F97316",
+				"gradient-2-end": "#D946EF",
+				"gradient-3-start": "#0EA5E9",
+				"gradient-3-end": "#6E59A5"
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -84,11 +91,77 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'gradient-background-1': {
+					'0%, 100%': {
+						'background-size': '200% 200%',
+						'background-position': 'left center'
+					},
+					'50%': {
+						'background-size': '200% 200%',
+						'background-position': 'right center'
+					}
+				},
+				'gradient-foreground-1': {
+					'0%, 100%': {
+						'background-size': '200% 200%',
+						'background-position': 'left center'
+					},
+					'50%': {
+						'background-size': '200% 200%',
+						'background-position': 'right center'
+					}
+				},
+				'gradient-background-2': {
+					'0%, 100%': {
+						'background-size': '200% 200%',
+						'background-position': 'left center'
+					},
+					'50%': {
+						'background-size': '200% 200%',
+						'background-position': 'right center'
+					}
+				},
+				'gradient-foreground-2': {
+					'0%, 100%': {
+						'background-size': '200% 200%',
+						'background-position': 'left center'
+					},
+					'50%': {
+						'background-size': '200% 200%',
+						'background-position': 'right center'
+					}
+				},
+				'gradient-background-3': {
+					'0%, 100%': {
+						'background-size': '200% 200%',
+						'background-position': 'left center'
+					},
+					'50%': {
+						'background-size': '200% 200%',
+						'background-position': 'right center'
+					}
+				},
+				'gradient-foreground-3': {
+					'0%, 100%': {
+						'background-size': '200% 200%',
+						'background-position': 'left center'
+					},
+					'50%': {
+						'background-size': '200% 200%',
+						'background-position': 'right center'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'gradient-background-1': 'gradient-background-1 8s ease infinite',
+				'gradient-foreground-1': 'gradient-foreground-1 8s ease infinite',
+				'gradient-background-2': 'gradient-background-2 8s ease infinite',
+				'gradient-foreground-2': 'gradient-foreground-2 8s ease infinite',
+				'gradient-background-3': 'gradient-background-3 8s ease infinite',
+				'gradient-foreground-3': 'gradient-foreground-3 8s ease infinite'
 			}
 		}
 	},
