@@ -42,6 +42,7 @@ const ChatInput: React.FC = () => {
 
   // Function to handle prompt selection
   const handlePromptSelect = (prompt: string) => {
+    console.log("Selected prompt:", prompt); // Debug log
     setMessage(prompt);
   };
 
@@ -53,6 +54,7 @@ const ChatInput: React.FC = () => {
             key={index} 
             onClick={() => handlePromptSelect(prompt)}
             size="sm"
+            className="cursor-pointer"
           >
             {prompt}
           </PromptSuggestion>
