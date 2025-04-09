@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { ChatMessage, ChatSettings, defaultSettings, ImageData } from "@/types/chat";
+import { ChatMessage, ChatSettings, defaultSettings, ImageData, FileAttachment } from "@/types/chat";
 import { openAIService } from "@/lib/openai-service";
 import { toast } from "@/components/ui/use-toast";
 
@@ -10,7 +9,7 @@ interface ChatContextType {
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   settings: ChatSettings;
   setSettings: React.Dispatch<React.SetStateAction<ChatSettings>>;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, file?: File | null) => Promise<void>;
   isProcessing: boolean;
   clearChat: () => void;
   downloadImage: (image: ImageData) => void;
@@ -38,7 +37,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (savedMessages) {
       try {
         const parsedMessages = JSON.parse(savedMessages);
-        // Convert string dates back to Date objects
         const messagesWithDates = parsedMessages.map((msg: any) => ({
           ...msg,
           timestamp: new Date(msg.timestamp),
@@ -57,7 +55,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Save messages to localStorage when they change
   useEffect(() => {
-    // Only save non-loading messages
     const messagesToSave = messages.filter(msg => !msg.isLoading);
     localStorage.setItem("chatHistory", JSON.stringify(messagesToSave));
   }, [messages]);
@@ -69,7 +66,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const downloadImage = (image: ImageData) => {
     if (!image.url) return;
     
-    // Create a temporary anchor element
     const anchor = document.createElement("a");
     anchor.href = image.url;
     anchor.download = `ai-image-${Date.now()}.png`;
@@ -78,18 +74,37 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     document.body.removeChild(anchor);
   };
 
-  const sendMessage = async (content: string) => {
-    if (!content.trim()) return;
+  const prepareFileAttachment = async (file: File): Promise<FileAttachment> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        resolve({
+          name: file.name,
+          type: file.type,
+          dataUrl: e.target?.result as string,
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  };
 
-    // Create user message
+  const sendMessage = async (content: string, file: File | null = null) => {
+    if (!content.trim() && !file) return;
+
+    let fileAttachment: FileAttachment | undefined;
+    
+    if (file) {
+      fileAttachment = await prepareFileAttachment(file);
+    }
+
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
       content,
       timestamp: new Date(),
+      attachment: fileAttachment,
     };
 
-    // Create a placeholder for the assistant's response
     const assistantMessage: ChatMessage = {
       id: (Date.now() + 1).toString(),
       role: "assistant",
@@ -98,19 +113,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isLoading: true,
     };
 
-    // Add messages to the state
     setMessages(prev => [...prev, userMessage, assistantMessage]);
     setIsProcessing(true);
 
     try {
-      // Check if this is an image generation request
       const isImageRequest = content.startsWith("/image");
       
       if (isImageRequest) {
-        // Extract the image prompt
         const imagePrompt = content.replace("/image", "").trim();
-        
-        // Generate the image
         const imageUrl = await openAIService.generateImage({
           prompt: imagePrompt,
           size: settings.imageSize,
@@ -119,7 +129,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         if (imageUrl) {
-          // Update the assistant message with the image
           setMessages(prev => 
             prev.map(msg => 
               msg.id === assistantMessage.id 
@@ -138,7 +147,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             )
           );
         } else {
-          // Handle error
           setMessages(prev => 
             prev.map(msg => 
               msg.id === assistantMessage.id 
@@ -152,19 +160,15 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           );
         }
       } else {
-        // Prepare messages for the API (excluding system messages and loading ones)
         const apiMessages = messages
           .filter(msg => !msg.isLoading)
           .map(msg => ({ role: msg.role, content: msg.content }));
           
-        // Add the new user message
         apiMessages.push({ role: "user", content });
         
-        // Get response from OpenAI
-        const response = await openAIService.generateChatResponse(apiMessages);
+        const response = await openAIService.generateChatResponse(apiMessages, file);
         
         if (response) {
-          // Update the assistant message with the response
           setMessages(prev => 
             prev.map(msg => 
               msg.id === assistantMessage.id 
@@ -177,7 +181,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             )
           );
         } else {
-          // Handle error
           setMessages(prev => 
             prev.map(msg => 
               msg.id === assistantMessage.id 
@@ -194,7 +197,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error("Error sending message:", error);
       
-      // Update the assistant message with the error
       setMessages(prev => 
         prev.map(msg => 
           msg.id === assistantMessage.id 

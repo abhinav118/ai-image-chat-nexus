@@ -46,15 +46,27 @@ export class OpenAIService {
     }
   }
 
-  public async generateChatResponse(messages: any[]): Promise<any> {
+  public async generateChatResponse(messages: any[], file?: File | null): Promise<any> {
     try {
-      const { data, error } = await supabase.functions.invoke("openai", {
-        body: {
-          action: "chat",
-          data: {
-            messages,
-          },
+      let requestBody: any = {
+        action: "chat",
+        data: {
+          messages,
         },
+      };
+
+      // If there's a file, convert it to base64 and add to the request
+      if (file) {
+        const base64File = await this.fileToBase64(file);
+        requestBody.data.file = {
+          name: file.name,
+          type: file.type,
+          data: base64File,
+        };
+      }
+
+      const { data, error } = await supabase.functions.invoke("openai", {
+        body: requestBody,
       });
 
       if (error) {
@@ -77,6 +89,20 @@ export class OpenAIService {
       
       return null;
     }
+  }
+
+  private async fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64String = reader.result as string;
+        // Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
+        const base64Data = base64String.split(',')[1];
+        resolve(base64Data);
+      };
+      reader.onerror = error => reject(error);
+    });
   }
 }
 

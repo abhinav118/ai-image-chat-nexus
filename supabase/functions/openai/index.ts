@@ -53,7 +53,56 @@ serve(async (req) => {
 });
 
 async function handleChatRequest(apiKey, data) {
-  const { messages } = data;
+  const { messages, file } = data;
+  
+  // Prepare the request payload
+  const requestPayload = {
+    model: 'gpt-4o',
+    messages: messages,
+    temperature: 0.7,
+    max_tokens: 1000,
+  };
+  
+  // If there's a file, add it to the messages
+  if (file) {
+    // If the last message is from the user, we can add the file to it
+    const lastUserMessageIndex = [...messages].reverse().findIndex(msg => msg.role === 'user');
+    
+    if (lastUserMessageIndex !== -1) {
+      // Convert the last user message to have content as an array of objects
+      const lastUserMessageRealIndex = messages.length - 1 - lastUserMessageIndex;
+      
+      // Determine the content type
+      const contentType = getContentType(file.type);
+      
+      // Create a new message list with the file
+      const updatedMessages = [...messages];
+      
+      // If the file is an image, we need to add it as a content array
+      if (contentType === 'image') {
+        updatedMessages[lastUserMessageRealIndex] = {
+          role: 'user',
+          content: [
+            { type: 'text', text: updatedMessages[lastUserMessageRealIndex].content },
+            { 
+              type: 'image_url', 
+              image_url: { 
+                url: `data:${file.type};base64,${file.data}`,
+                detail: 'high' 
+              } 
+            }
+          ]
+        };
+      } else {
+        // For non-image files, just note that a file was attached
+        const fileName = file.name || 'attachment';
+        const updatedContent = `${updatedMessages[lastUserMessageRealIndex].content}\n\n[Attached file: ${fileName}]`;
+        updatedMessages[lastUserMessageRealIndex].content = updatedContent;
+      }
+      
+      requestPayload.messages = updatedMessages;
+    }
+  }
   
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -61,12 +110,7 @@ async function handleChatRequest(apiKey, data) {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: messages,
-      temperature: 0.7,
-      max_tokens: 1000,
-    }),
+    body: JSON.stringify(requestPayload),
   });
   
   const result = await response.json();
@@ -83,6 +127,18 @@ async function handleChatRequest(apiKey, data) {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     }
   );
+}
+
+function getContentType(mimeType) {
+  if (mimeType.startsWith('image/')) {
+    return 'image';
+  } else if (mimeType.startsWith('video/')) {
+    return 'video';
+  } else if (mimeType.startsWith('audio/')) {
+    return 'audio';
+  } else {
+    return 'document';
+  }
 }
 
 async function handleImageRequest(apiKey, data) {

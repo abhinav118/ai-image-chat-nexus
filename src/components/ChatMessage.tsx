@@ -2,7 +2,7 @@
 import React from "react";
 import { ChatMessage as ChatMessageType } from "@/types/chat";
 import { cn } from "@/lib/utils";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useChat } from "@/contexts/ChatContext";
@@ -14,6 +14,15 @@ interface ChatMessageProps {
 const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const { downloadImage } = useChat();
   const isUser = message.role === "user";
+  
+  const handleFileClick = (dataUrl: string, fileName: string) => {
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   
   return (
     <motion.div
@@ -41,6 +50,16 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         ) : (
           <div className="space-y-2">
             <div className="whitespace-pre-wrap">{message.content}</div>
+            
+            {message.attachment && (
+              <div className="mt-2 p-2 bg-black/10 dark:bg-white/10 rounded-md cursor-pointer hover:bg-black/15 dark:hover:bg-white/15 transition-colors"
+                   onClick={() => handleFileClick(message.attachment!.dataUrl, message.attachment!.name)}>
+                <div className="flex items-center gap-2">
+                  <Paperclip className="h-4 w-4" />
+                  <span className="text-sm">{message.attachment.name}</span>
+                </div>
+              </div>
+            )}
             
             {message.image && (
               <div className="mt-2 relative">

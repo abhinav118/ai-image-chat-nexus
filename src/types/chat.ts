@@ -8,6 +8,12 @@ export interface ImageData {
   style: string;
 }
 
+export interface FileAttachment {
+  name: string;
+  type: string;
+  dataUrl: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: MessageRole;
@@ -15,6 +21,7 @@ export interface ChatMessage {
   timestamp: Date;
   isLoading?: boolean;
   image?: ImageData;
+  attachment?: FileAttachment;
 }
 
 export interface ChatSettings {
