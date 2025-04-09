@@ -17,7 +17,16 @@ serve(async (req) => {
     const OPENAI_API_KEY = Deno.env.get('OPEN_AI_KEY');
     
     if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not found in environment variables');
+      console.error('OpenAI API key not found in environment variables');
+      return new Response(
+        JSON.stringify({
+          error: 'OpenAI API key not configured. Please set the OPEN_AI_KEY in your Supabase Edge Function Secrets.',
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const { action, data } = await req.json();
@@ -62,6 +71,10 @@ async function handleChatRequest(apiKey, data) {
   
   const result = await response.json();
   
+  if (result.error) {
+    throw new Error(result.error.message || 'Error from OpenAI API');
+  }
+  
   return new Response(
     JSON.stringify({ 
       response: result.choices[0]?.message || { content: "No response generated" } 
@@ -75,7 +88,7 @@ async function handleChatRequest(apiKey, data) {
 async function handleImageRequest(apiKey, data) {
   const { prompt, size, style, quality } = data;
   
-  const response = await fetch('https://api.openai.com/v1/images/generate', {
+  const response = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
@@ -92,6 +105,10 @@ async function handleImageRequest(apiKey, data) {
   });
   
   const result = await response.json();
+  
+  if (result.error) {
+    throw new Error(result.error.message || 'Error generating image');
+  }
   
   return new Response(
     JSON.stringify({ imageUrl: result.data?.[0]?.url || null }),

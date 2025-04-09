@@ -44,7 +44,7 @@ const ChatHeader: React.FC = () => {
                     <AlertDialogTitle>Help & Tips</AlertDialogTitle>
                     <AlertDialogDescription className="space-y-2">
                       <p>
-                        <strong>Getting Started:</strong> Enter your OpenAI API key in the settings.
+                        <strong>Getting Started:</strong> Make sure the OPEN_AI_KEY is set in Supabase Edge Function Secrets.
                       </p>
                       <p>
                         <strong>Text Chat:</strong> Just type your message and press enter or click the send button.

@@ -28,6 +28,10 @@ export class OpenAIService {
         throw new Error(error.message);
       }
 
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
       return data?.imageUrl || null;
     } catch (error: any) {
       console.error("Error generating image:", error);
@@ -55,6 +59,10 @@ export class OpenAIService {
 
       if (error) {
         throw new Error(error.message);
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
       return data?.response || null;
