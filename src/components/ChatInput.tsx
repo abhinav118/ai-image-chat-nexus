@@ -53,19 +53,20 @@ const ChatInput: React.FC = () => {
         </div>
       )}
       
-      <div className="flex flex-col space-y-2">
-        <Input
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder={isImageMode ? "Describe the ad creative you want..." : "Type a message..."}
-          className={cn(
-            isImageMode && "border-2 border-gradient-2-start"
-          )}
-          disabled={isProcessing}
-        />
-        
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex gap-2">
+      <div className="flex items-center space-x-2">
+        <div className="relative flex-1">
+          <Input
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={isImageMode ? "Describe the ad creative you want..." : "Type a message..."}
+            className={cn(
+              "pr-20",
+              isImageMode && "border-2 border-gradient-2-start"
+            )}
+            disabled={isProcessing}
+          />
+          
+          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center space-x-1">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -73,10 +74,10 @@ const ChatInput: React.FC = () => {
                     <Button
                       type="button"
                       size="sm"
-                      variant="outline"
+                      variant="ghost"
+                      className="h-8 w-8 p-0"
                     >
-                      <Paperclip className="h-4 w-4 mr-1" />
-                      Attach
+                      <Paperclip className="h-4 w-4" />
                     </Button>
                     <input 
                       type="file" 
@@ -98,19 +99,16 @@ const ChatInput: React.FC = () => {
                   <Button
                     type="button"
                     size="sm"
-                    variant="outline"
+                    variant="ghost"
+                    className="h-8 w-8 p-0"
                     onClick={toggleImageMode}
-                    className={cn(
-                      isImageMode && "border-gradient-2-start bg-gradient-2-start/10"
-                    )}
                   >
                     <Image
                       className={cn(
-                        "h-4 w-4 mr-1",
+                        "h-4 w-4",
                         isImageMode && "text-gradient-2-start"
                       )}
                     />
-                    {isImageMode ? "Image mode" : "Image"}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -119,21 +117,20 @@ const ChatInput: React.FC = () => {
               </Tooltip>
             </TooltipProvider>
           </div>
-          
-          <Button 
-            type="submit" 
-            size="sm" 
-            disabled={(!message.trim() && !selectedFile) || isProcessing}
-            className="bg-gradient-to-r from-gradient-1-start to-gradient-1-end text-white hover:opacity-90"
-          >
-            {isProcessing ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-1" />
-            ) : (
-              <Send className="h-4 w-4 mr-1" />
-            )}
-            Send
-          </Button>
         </div>
+        
+        <Button 
+          type="submit" 
+          size="icon" 
+          disabled={(!message.trim() && !selectedFile) || isProcessing}
+          className="bg-gradient-to-r from-gradient-1-start to-gradient-1-end text-white hover:opacity-90"
+        >
+          {isProcessing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+        </Button>
       </div>
     </form>
   );
