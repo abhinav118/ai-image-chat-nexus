@@ -70,7 +70,9 @@ const ChatInterface: React.FC = () => {
           )}
         </div>
         
-        <ChatInput />
+        <div className="border-t pt-4">
+          <ChatInput />
+        </div>
       </div>
     </div>
   );
