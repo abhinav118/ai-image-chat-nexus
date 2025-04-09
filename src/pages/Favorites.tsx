@@ -9,13 +9,35 @@ const Favorites = () => {
   const [favorites, setFavorites] = useState<CreativeItem[]>([]);
   
   useEffect(() => {
-    // Get initial favorites from mock data
-    setFavorites(mockCreatives.filter(creative => creative.isFavorite));
+    // Get favorites from localStorage if available
+    const storedFavorites = localStorage.getItem('favoriteCreatives');
+    const parsedStoredFavorites = storedFavorites ? JSON.parse(storedFavorites) : [];
+    
+    // Combine with mock favorites
+    const mockFavorites = mockCreatives.filter(creative => creative.isFavorite);
+    const allFavorites = [...mockFavorites];
+    
+    // Add stored favorites if they don't already exist in mock favorites
+    parsedStoredFavorites.forEach((storedFav: any) => {
+      if (!allFavorites.some(fav => fav.id === storedFav.id)) {
+        allFavorites.push(storedFav);
+      }
+    });
+    
+    setFavorites(allFavorites);
   }, []);
   
   const handleFavoriteToggle = (id: string, isFavorite: boolean) => {
     if (!isFavorite) {
-      setFavorites(prev => prev.filter(fav => fav.id !== id));
+      // Remove from favorites
+      const updatedFavorites = favorites.filter(fav => fav.id !== id);
+      setFavorites(updatedFavorites);
+      
+      // Update localStorage
+      const storedFavorites = localStorage.getItem('favoriteCreatives');
+      const parsedStoredFavorites = storedFavorites ? JSON.parse(storedFavorites) : [];
+      const updatedStoredFavorites = parsedStoredFavorites.filter((fav: any) => fav.id !== id);
+      localStorage.setItem('favoriteCreatives', JSON.stringify(updatedStoredFavorites));
     }
   };
 
@@ -38,6 +60,7 @@ const Favorites = () => {
                 id={creative.id}
                 imageUrl={creative.imageUrl}
                 title={creative.title}
+                prompt={creative.prompt}
                 isFavorite={true}
                 onFavoriteToggle={handleFavoriteToggle}
               />

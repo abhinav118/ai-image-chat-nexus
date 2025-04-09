@@ -1,11 +1,12 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { ChatMessage as ChatMessageType } from "@/types/chat";
 import { cn } from "@/lib/utils";
-import { Loader2, Download, Paperclip } from "lucide-react";
+import { Loader2, Download, Paperclip, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useChat } from "@/contexts/ChatContext";
+import { toast } from "@/components/ui/use-toast";
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -14,6 +15,7 @@ interface ChatMessageProps {
 const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const { downloadImage } = useChat();
   const isUser = message.role === "user";
+  const [isFavorite, setIsFavorite] = useState(false);
   
   const handleFileClick = (dataUrl: string, fileName: string) => {
     const link = document.createElement('a');
@@ -22,6 +24,48 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+  
+  const handleFavoriteClick = () => {
+    const newState = !isFavorite;
+    setIsFavorite(newState);
+    
+    if (message.image) {
+      const favoriteImage = {
+        id: `fav-${Date.now()}`,
+        imageUrl: message.image.url,
+        title: message.image.prompt,
+        prompt: message.image.prompt,
+        tags: ["ai-generated", "chat"],
+        category: "AI Generated",
+        isFavorite: true
+      };
+      
+      // Get existing favorites from localStorage
+      const existingFavoritesString = localStorage.getItem('favoriteCreatives');
+      const existingFavorites = existingFavoritesString ? JSON.parse(existingFavoritesString) : [];
+      
+      if (newState) {
+        // Add to favorites
+        localStorage.setItem('favoriteCreatives', JSON.stringify([...existingFavorites, favoriteImage]));
+        toast({
+          title: "Added to favorites",
+          description: message.image.prompt,
+          duration: 2000,
+        });
+      } else {
+        // Remove from favorites if it exists
+        const updatedFavorites = existingFavorites.filter((fav: any) => 
+          fav.imageUrl !== message.image?.url
+        );
+        localStorage.setItem('favoriteCreatives', JSON.stringify(updatedFavorites));
+        toast({
+          title: "Removed from favorites",
+          description: message.image?.prompt,
+          duration: 2000,
+        });
+      }
+    }
   };
   
   return (
@@ -72,15 +116,29 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
                   <div className="text-xs opacity-80">
                     {message.image.size} • {message.image.style} style
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center space-x-1"
-                    onClick={() => downloadImage(message.image!)}
-                  >
-                    <Download className="h-3 w-3" />
-                    <span>Download</span>
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center space-x-1"
+                      onClick={handleFavoriteClick}
+                    >
+                      <Star className={cn(
+                        "h-3 w-3", 
+                        isFavorite ? "fill-yellow-400 text-yellow-400" : ""
+                      )} />
+                      <span>{isFavorite ? "Favorited" : "Favorite"}</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center space-x-1"
+                      onClick={() => downloadImage(message.image!)}
+                    >
+                      <Download className="h-3 w-3" />
+                      <span>Download</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { mockTemplates, templateCategories } from "@/data/mockCreatives";
-import { BookOpen, Star } from "lucide-react";
+import { BookOpen, Star, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/use-toast";
 
@@ -18,6 +18,15 @@ const Templates = () => {
     toast({
       title: "Template added to favorites",
       description: title,
+      duration: 2000,
+    });
+  };
+  
+  const handleCopyClick = (description: string) => {
+    navigator.clipboard.writeText(description);
+    toast({
+      title: "Description copied to clipboard",
+      description: "You can now use this as a prompt for generating images",
       duration: 2000,
     });
   };
@@ -69,12 +78,22 @@ const Templates = () => {
                   alt={template.title}
                   className="w-full aspect-video object-cover"
                 />
-                <button
-                  onClick={() => handleFavoriteClick(template.title)}
-                  className="absolute top-3 right-3 p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors"
-                >
-                  <Star className="h-5 w-5 text-white" />
-                </button>
+                <div className="absolute top-3 right-3 flex gap-2">
+                  <button
+                    onClick={() => handleCopyClick(template.description)}
+                    className="p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors"
+                    title="Copy description"
+                  >
+                    <Copy className="h-5 w-5 text-white" />
+                  </button>
+                  <button
+                    onClick={() => handleFavoriteClick(template.title)}
+                    className="p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors"
+                    title="Add to favorites"
+                  >
+                    <Star className="h-5 w-5 text-white" />
+                  </button>
+                </div>
               </div>
               <CardContent className="p-4">
                 <div className="mb-2">

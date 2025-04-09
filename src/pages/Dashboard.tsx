@@ -12,7 +12,8 @@ const Dashboard = () => {
   
   const filteredCreatives = creatives.filter(creative => 
     creative.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    creative.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    creative.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    creative.prompt.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
   const handleFavoriteToggle = (id: string, isFavorite: boolean) => {
@@ -50,6 +51,7 @@ const Dashboard = () => {
               id={creative.id}
               imageUrl={creative.imageUrl}
               title={creative.title}
+              prompt={creative.prompt}
               isFavorite={creative.isFavorite}
               onFavoriteToggle={handleFavoriteToggle}
             />
