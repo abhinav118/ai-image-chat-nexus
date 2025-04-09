@@ -9,12 +9,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useFileAttachment } from "@/hooks/useFileAttachment";
 import { PromptSuggestion } from "@/components/ui/prompt-suggestion";
 
+// Limiting to just 2 prompt suggestions
 const PROMPT_SUGGESTIONS = [
   "Generate an image of a mountain landscape",
-  "Explain how machine learning works",
-  "Write a short story about time travel",
-  "Help me debug my React code",
-  "What are the best practices for API design?"
+  "Explain how machine learning works"
 ];
 
 const ChatInput: React.FC = () => {
@@ -42,6 +40,7 @@ const ChatInput: React.FC = () => {
     handleFileSelect(file);
   };
 
+  // New function to handle prompt selection
   const handlePromptSelect = (prompt: string) => {
     setMessage(prompt);
   };
