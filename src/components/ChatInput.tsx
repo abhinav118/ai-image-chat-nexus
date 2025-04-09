@@ -40,7 +40,7 @@ const ChatInput: React.FC = () => {
     handleFileSelect(file);
   };
 
-  // New function to handle prompt selection
+  // Function to handle prompt selection
   const handlePromptSelect = (prompt: string) => {
     setMessage(prompt);
   };
