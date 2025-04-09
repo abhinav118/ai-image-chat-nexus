@@ -1,11 +1,17 @@
-
 export type MessageRole = "user" | "assistant" | "system";
 
 export interface ImageData {
   url: string;
   prompt: string;
-  size: string;
-  style: string;
+  size?: string;
+  style?: string;
+}
+
+export interface FileAttachment {
+  name: string;
+  type: string;
+  url: string;
+  size: number;
 }
 
 export interface ChatMessage {
@@ -15,6 +21,7 @@ export interface ChatMessage {
   timestamp: Date;
   isLoading?: boolean;
   image?: ImageData;
+  attachment?: FileAttachment;
 }
 
 export interface ChatSettings {
