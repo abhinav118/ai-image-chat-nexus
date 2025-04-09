@@ -1,6 +1,6 @@
 
 import { toast } from "@/components/ui/use-toast";
-import OpenAI from "openai";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface ImageGenerationParams {
   prompt: string;
@@ -10,48 +10,25 @@ export interface ImageGenerationParams {
 }
 
 export class OpenAIService {
-  private openai: OpenAI | null = null;
-  private apiKey: string | null = null;
-
-  constructor(apiKey?: string) {
-    if (apiKey) {
-      this.setApiKey(apiKey);
-    }
-  }
-
-  public setApiKey(apiKey: string) {
-    this.apiKey = apiKey;
-    this.openai = new OpenAI({
-      apiKey: apiKey,
-      dangerouslyAllowBrowser: true, // Note: In production, API calls should be made from the backend
-    });
-  }
-
-  public getApiKey(): string | null {
-    return this.apiKey;
-  }
-
   public async generateImage(params: ImageGenerationParams): Promise<string | null> {
-    if (!this.openai) {
-      toast({
-        title: "API Key Missing",
-        description: "Please set your OpenAI API key in the settings.",
-        variant: "destructive",
-      });
-      return null;
-    }
-
     try {
-      const response = await this.openai.images.generate({
-        model: "dall-e-3",
-        prompt: params.prompt,
-        n: 1,
-        size: (params.size || "1024x1024") as any,
-        style: (params.style || "vivid") as any,
-        quality: (params.quality || "standard") as any,
+      const { data, error } = await supabase.functions.invoke("openai", {
+        body: {
+          action: "image",
+          data: {
+            prompt: params.prompt,
+            size: params.size || "1024x1024",
+            style: params.style || "vivid",
+            quality: params.quality || "standard",
+          },
+        },
       });
 
-      return response.data[0]?.url || null;
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return data?.imageUrl || null;
     } catch (error: any) {
       console.error("Error generating image:", error);
       
@@ -66,24 +43,21 @@ export class OpenAIService {
   }
 
   public async generateChatResponse(messages: any[]): Promise<any> {
-    if (!this.openai) {
-      toast({
-        title: "API Key Missing",
-        description: "Please set your OpenAI API key in the settings.",
-        variant: "destructive",
-      });
-      return null;
-    }
-
     try {
-      const response = await this.openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 1000,
+      const { data, error } = await supabase.functions.invoke("openai", {
+        body: {
+          action: "chat",
+          data: {
+            messages,
+          },
+        },
       });
 
-      return response.choices[0]?.message;
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return data?.response || null;
     } catch (error: any) {
       console.error("Error generating chat response:", error);
       

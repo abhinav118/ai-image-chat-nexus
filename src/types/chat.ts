@@ -18,14 +18,12 @@ export interface ChatMessage {
 }
 
 export interface ChatSettings {
-  apiKey: string;
   imageSize: string;
   imageStyle: string;
   imageQuality: string;
 }
 
 export const defaultSettings: ChatSettings = {
-  apiKey: "",
   imageSize: "1024x1024",
   imageStyle: "vivid",
   imageQuality: "standard",

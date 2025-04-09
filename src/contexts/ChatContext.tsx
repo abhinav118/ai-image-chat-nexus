@@ -31,11 +31,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (savedSettings) {
       const parsedSettings = JSON.parse(savedSettings);
       setSettings(parsedSettings);
-      
-      // Set API key in OpenAI service
-      if (parsedSettings.apiKey) {
-        openAIService.setApiKey(parsedSettings.apiKey);
-      }
     }
 
     // Load chat history
@@ -58,11 +53,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Save settings to localStorage when they change
   useEffect(() => {
     localStorage.setItem("chatSettings", JSON.stringify(settings));
-    
-    // Update API key in service
-    if (settings.apiKey) {
-      openAIService.setApiKey(settings.apiKey);
-    }
   }, [settings]);
 
   // Save messages to localStorage when they change
@@ -90,16 +80,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const sendMessage = async (content: string) => {
     if (!content.trim()) return;
-    
-    // Check if API key is set
-    if (!openAIService.getApiKey()) {
-      toast({
-        title: "API Key Missing",
-        description: "Please set your OpenAI API key in the settings.",
-        variant: "destructive",
-      });
-      return;
-    }
 
     // Create user message
     const userMessage: ChatMessage = {

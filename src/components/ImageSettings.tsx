@@ -3,17 +3,12 @@ import React from "react";
 import { useChat } from "@/contexts/ChatContext";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Settings } from "lucide-react";
 
 const ImageSettings: React.FC = () => {
   const { settings, setSettings } = useChat();
-
-  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSettings(prev => ({ ...prev, apiKey: e.target.value }));
-  };
 
   const handleImageSizeChange = (value: string) => {
     setSettings(prev => ({ ...prev, imageSize: value }));
@@ -36,21 +31,7 @@ const ImageSettings: React.FC = () => {
       </PopoverTrigger>
       <PopoverContent className="w-80 p-4">
         <div className="space-y-4">
-          <h3 className="text-lg font-medium">Settings</h3>
-          
-          <div className="space-y-2">
-            <Label htmlFor="apiKey">OpenAI API Key</Label>
-            <Input
-              id="apiKey"
-              type="password"
-              value={settings.apiKey}
-              onChange={handleApiKeyChange}
-              placeholder="sk-..."
-            />
-            <p className="text-xs text-muted-foreground">
-              Your API key is stored locally and never sent to our servers.
-            </p>
-          </div>
+          <h3 className="text-lg font-medium">Image Settings</h3>
           
           <div className="space-y-2">
             <Label>Image Size</Label>
