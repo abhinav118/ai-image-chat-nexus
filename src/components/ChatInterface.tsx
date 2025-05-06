@@ -7,16 +7,23 @@ import { CanvasRevealEffect } from "@/components/ui/canvas-effect";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Lightbulb } from "lucide-react";
 import { motion } from "framer-motion";
+import { ScrollArea } from "./ui/scroll-area";
 
 const ChatInterface: React.FC = () => {
   const { messages } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [responseMode, setResponseMode] = useState("auto");
   const [showBackground, setShowBackground] = useState(false);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      // Use a small timeout to ensure layout is complete
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
   }, [messages]);
 
   // Show background with slight delay for nice fade in
@@ -67,7 +74,10 @@ const ChatInterface: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto mb-4 custom-scrollbar pr-2">
+        <ScrollArea 
+          ref={scrollAreaRef} 
+          className="flex-1 mb-4 pr-2 overflow-y-auto"
+        >
           {messages.length === 0 ? (
             <div className="h-full flex items-center justify-center text-center">
               <div className="max-w-md bg-background/50 p-6 rounded-xl border border-border/20 shadow-sm">
@@ -85,14 +95,14 @@ const ChatInterface: React.FC = () => {
               </div>
             </div>
           ) : (
-            <>
+            <div className="py-2">
               {messages.map((message) => (
                 <ChatMessage key={message.id} message={message} />
               ))}
               <div ref={messagesEndRef} />
-            </>
+            </div>
           )}
-        </div>
+        </ScrollArea>
         
         <div className="border-t border-border/30 pt-4">
           <ChatInput />

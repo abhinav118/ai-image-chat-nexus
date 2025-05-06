@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ChatMessage as ChatMessageType } from "@/types/chat";
 import { cn } from "@/lib/utils";
 import { Loader2, Download, Paperclip, Star } from "lucide-react";
@@ -16,6 +16,19 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const { downloadImage } = useChat();
   const isUser = message.role === "user";
   const [isFavorite, setIsFavorite] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  
+  // Check if this image is in favorites on mount
+  useEffect(() => {
+    if (message.image) {
+      const existingFavoritesString = localStorage.getItem('favoriteCreatives');
+      const existingFavorites = existingFavoritesString ? JSON.parse(existingFavoritesString) : [];
+      const isFav = existingFavorites.some((fav: any) => 
+        fav.imageUrl === message.image?.url
+      );
+      setIsFavorite(isFav);
+    }
+  }, [message.image]);
   
   const handleFileClick = (dataUrl: string, fileName: string) => {
     const link = document.createElement('a');
@@ -67,6 +80,19 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
       }
     }
   };
+
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+    
+    // Scroll to the bottom when image loads
+    const messagesContainer = document.querySelector('.overflow-y-auto');
+    if (messagesContainer) {
+      setTimeout(() => {
+        const messagesEnd = document.querySelector('[data-messages-end="true"]');
+        messagesEnd?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  };
   
   return (
     <motion.div
@@ -108,17 +134,19 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
               
               {message.image && (
                 <div className="mt-3 relative">
+                  {!imageLoaded && (
+                    <div className="w-full h-[200px] bg-muted/30 rounded-lg flex items-center justify-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
                   <img
                     src={message.image.url}
                     alt={message.image.prompt}
-                    className="rounded-lg w-full object-contain max-h-[300px]"
-                    onLoad={() => {
-                      // Auto-scroll when image loads
-                      const messagesContainer = document.querySelector('.overflow-y-auto');
-                      if (messagesContainer) {
-                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                      }
-                    }}
+                    className={cn(
+                      "rounded-lg w-full object-contain max-h-[300px]",
+                      !imageLoaded && "hidden"
+                    )}
+                    onLoad={handleImageLoad}
                   />
                   <div className="mt-3 flex justify-between items-center">
                     <div className="text-xs opacity-80">
