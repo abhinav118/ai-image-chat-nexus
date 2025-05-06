@@ -1,16 +1,18 @@
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useChat } from "@/contexts/ChatContext";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
-import ChatHeader from "./ChatHeader";
 import { motion } from "framer-motion";
 import { CanvasRevealEffect } from "@/components/ui/canvas-effect";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Lightbulb } from "lucide-react";
 
 const ChatInterface: React.FC = () => {
   const { messages } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showBackground, setShowBackground] = React.useState(false);
+  const [responseMode, setResponseMode] = useState("auto");
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -45,7 +47,24 @@ const ChatInterface: React.FC = () => {
       )}
 
       <div className="flex flex-col h-full p-4 md:p-6 overflow-hidden">
-        <ChatHeader />
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h1 className="text-2xl font-bold">AI Image Chat</h1>
+            <p className="text-muted-foreground">Chat with AI to create stunning ad creatives with visuals</p>
+          </div>
+          <div>
+            <Select value={responseMode} onValueChange={setResponseMode}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Response Mode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Auto</SelectItem>
+                <SelectItem value="concise">Concise</SelectItem>
+                <SelectItem value="visual-first">Visual-First</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         
         <div className="flex-1 overflow-y-auto mb-4 custom-scrollbar">
           {messages.length === 0 ? (
@@ -55,9 +74,13 @@ const ChatInterface: React.FC = () => {
                 <p className="text-muted-foreground mb-4">
                   Chat with AI and generate images using the "/image" command or by toggling the image mode.
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  Configure your API key and image settings using the gear icon above.
-                </p>
+                <div className="bg-muted/50 p-4 rounded-lg border border-border flex items-start gap-3">
+                  <Lightbulb className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-left">
+                    <p className="font-medium mb-1">Tip</p>
+                    <p>Try typing <span className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">/image</span> followed by your description to generate visuals automatically.</p>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
