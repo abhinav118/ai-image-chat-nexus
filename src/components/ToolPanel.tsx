@@ -1,7 +1,6 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, UploadCloud } from "lucide-react";
 import { useChat } from "@/contexts/ChatContext";
@@ -56,11 +55,14 @@ const ToolPanel: React.FC = () => {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <h3 className="text-sm font-medium mb-2">Step 1: Describe your creative idea</h3>
+              <h3 className="text-sm font-medium mb-2 flex items-center">
+                <span className="bg-primary/10 text-primary rounded-full h-6 w-6 inline-flex items-center justify-center mr-2">1</span>
+                Enter a Prompt
+              </h3>
               <Textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe the ad creative you want to generate..."
+                placeholder="Describe what you want to generate..."
                 className="min-h-[100px]"
               />
             </div>
@@ -79,18 +81,25 @@ const ToolPanel: React.FC = () => {
               >
                 <UploadCloud className="h-10 w-10 text-muted-foreground mb-2" />
                 <p className="text-sm text-muted-foreground mb-1">
-                  Drag and drop files here
+                  Drop a file or click to upload
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Supported file types: .txt, .docx, .png, .jpg
+                  Supports .txt, .md, .docx
                 </p>
               </div>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium mb-2 flex items-center">
+                <span className="bg-primary/10 text-primary rounded-full h-6 w-6 inline-flex items-center justify-center mr-2">2</span>
+                Generate Image
+              </h3>
             </div>
           </div>
         </CardContent>
         <CardFooter>
           <Button 
-            className="w-full" 
+            className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:opacity-90" 
             onClick={handleSubmit}
             disabled={!prompt.trim() || isLoading}
           >
@@ -100,7 +109,9 @@ const ToolPanel: React.FC = () => {
                 Generating...
               </>
             ) : (
-              "Generate Ad Creative"
+              <>
+                <span className="mr-2">Run</span>
+              </>
             )}
           </Button>
         </CardFooter>
