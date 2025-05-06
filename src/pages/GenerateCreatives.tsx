@@ -3,26 +3,23 @@ import React from "react";
 import AppLayout from "@/components/AppLayout";
 import { ChatProvider } from "@/contexts/ChatContext";
 import ChatInterface from "@/components/ChatInterface";
-import ToolPanel from "@/components/ToolPanel";
+import PromptAssistant from "@/components/PromptAssistant";
+import { Separator } from "@/components/ui/separator";
 
 const GenerateCreatives = () => {
   return (
     <AppLayout>
       <ChatProvider>
         <div className="h-full flex">
-          <div className="flex-1 p-6 max-w-screen-2xl">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold">Generate Ad Creatives</h1>
-              <p className="text-gray-400">Use AI to create custom ad creatives</p>
-            </div>
-            
-            <div className="h-[calc(100vh-12rem)] rounded-lg border border-gray-800 shadow-lg overflow-hidden">
-              <ChatInterface />
-            </div>
+          {/* Main content area (center pane) */}
+          <div className="flex-1 bg-background border-r border-border/30">
+            <ChatInterface />
           </div>
           
-          {/* Right Tool Panel */}
-          <ToolPanel />
+          {/* Right sidebar - Prompt Assistant */}
+          <div className="w-80 bg-background/50 h-screen overflow-y-auto">
+            <PromptAssistant />
+          </div>
         </div>
       </ChatProvider>
     </AppLayout>

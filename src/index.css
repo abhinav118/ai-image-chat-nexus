@@ -33,7 +33,7 @@
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -54,15 +54,20 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* PowerDrill-style transitions */
+  button, a {
+    @apply transition-all duration-200;
+  }
 }
 
 /* Custom scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
   border-radius: 4px;
 }
 
@@ -73,4 +78,29 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+/* Powerdrill-style card */
+.powerdrill-card {
+  @apply bg-background/80 backdrop-blur-sm border border-border/30 rounded-xl shadow-sm;
+}
+
+/* Powerdrill-style input */
+.powerdrill-input {
+  @apply bg-background/80 border-border/20 rounded-lg px-4 py-3 focus-visible:ring-1 focus-visible:ring-[#9b87f5]/50 focus-visible:ring-offset-0;
+}
+
+/* Powerdrill-style button */
+.powerdrill-button {
+  @apply bg-[#9b87f5]/90 hover:bg-[#9b87f5] text-white transition-all duration-200 hover:translate-y-[-1px] rounded-lg px-4 py-2 text-sm font-medium;
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
 }

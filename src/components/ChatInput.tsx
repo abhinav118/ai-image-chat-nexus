@@ -36,16 +36,16 @@ const ChatInput: React.FC = () => {
   return (
     <form onSubmit={handleSubmit} className="space-y-2">
       {selectedFile && (
-        <div className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md">
+        <div className="flex items-center gap-2 p-2 bg-background/80 rounded-md border border-border/30">
           <div className="flex-1 flex items-center gap-2 overflow-hidden">
-            <Paperclip className="h-4 w-4 flex-shrink-0" />
+            <Paperclip className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
             <span className="text-sm truncate">{selectedFile.name}</span>
           </div>
           <Button 
             type="button" 
             variant="ghost" 
             size="sm" 
-            className="h-6 w-6 p-0" 
+            className="h-6 w-6 p-0 hover:bg-background/90" 
             onClick={clearFile}
           >
             <X className="h-4 w-4" />
@@ -60,13 +60,13 @@ const ChatInput: React.FC = () => {
             onChange={(e) => setMessage(e.target.value)}
             placeholder={isImageMode ? "Describe the ad creative you want..." : "Type a message..."}
             className={cn(
-              "pr-20",
-              isImageMode && "border-2 border-gradient-2-start"
+              "pr-20 bg-background/80 border-muted focus:border-[#9b87f5]/30 pl-4 py-6 h-auto",
+              isImageMode && "border-l-4 border-l-[#9b87f5]"
             )}
             disabled={isProcessing}
           />
           
-          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center space-x-1">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -75,9 +75,9 @@ const ChatInput: React.FC = () => {
                       type="button"
                       size="sm"
                       variant="ghost"
-                      className="h-8 w-8 p-0"
+                      className="h-8 w-8 p-0 rounded-full hover:bg-background"
                     >
-                      <Paperclip className="h-4 w-4" />
+                      <Paperclip className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
                     </Button>
                     <input 
                       type="file" 
@@ -100,13 +100,13 @@ const ChatInput: React.FC = () => {
                     type="button"
                     size="sm"
                     variant="ghost"
-                    className="h-8 w-8 p-0"
+                    className="h-8 w-8 p-0 rounded-full hover:bg-background"
                     onClick={toggleImageMode}
                   >
                     <Image
                       className={cn(
-                        "h-4 w-4",
-                        isImageMode && "text-gradient-2-start"
+                        "h-4 w-4 transition-colors",
+                        isImageMode ? "text-[#9b87f5]" : "text-muted-foreground hover:text-foreground"
                       )}
                     />
                   </Button>
@@ -123,7 +123,7 @@ const ChatInput: React.FC = () => {
           type="submit" 
           size="icon" 
           disabled={(!message.trim() && !selectedFile) || isProcessing}
-          className="bg-gradient-to-r from-gradient-1-start to-gradient-1-end text-white hover:opacity-90"
+          className="bg-[#9b87f5]/90 hover:bg-[#9b87f5] text-white rounded-full w-10 h-10 flex items-center justify-center transition-all duration-200 hover:translate-y-[-1px]"
         >
           {isProcessing ? (
             <Loader2 className="h-4 w-4 animate-spin" />
