@@ -15,6 +15,9 @@ interface ChatContextType {
   downloadImage: (image: ImageData) => void;
 }
 
+// Maximum number of messages to keep in localStorage
+const MAX_STORED_MESSAGES = 50;
+
 // Create the context
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
@@ -55,12 +58,48 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Save messages to localStorage when they change
   useEffect(() => {
-    const messagesToSave = messages.filter(msg => !msg.isLoading);
-    localStorage.setItem("chatHistory", JSON.stringify(messagesToSave));
+    try {
+      // Only keep non-loading messages
+      const messagesToSave = messages
+        .filter(msg => !msg.isLoading)
+        // Limit to most recent messages
+        .slice(-MAX_STORED_MESSAGES);
+      
+      localStorage.setItem("chatHistory", JSON.stringify(messagesToSave));
+    } catch (error) {
+      // Handle quota exceeded error
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        console.warn("localStorage quota exceeded, clearing older messages");
+        
+        // Clear localStorage and keep only the most recent messages
+        localStorage.clear();
+        
+        // Try saving only the latest few messages
+        const reducedMessages = messages
+          .filter(msg => !msg.isLoading)
+          .slice(-20);
+        
+        try {
+          localStorage.setItem("chatHistory", JSON.stringify(reducedMessages));
+        } catch (innerError) {
+          // If still failing, just clear chat history storage
+          console.error("Still cannot save to localStorage, disabling chat history storage");
+          localStorage.removeItem("chatHistory");
+        }
+        
+        toast({
+          title: "Chat history partially cleared",
+          description: "Your chat history was getting too large and has been trimmed.",
+        });
+      } else {
+        console.error("Error saving chat history:", error);
+      }
+    }
   }, [messages]);
 
   const clearChat = () => {
     setMessages([]);
+    localStorage.removeItem("chatHistory");
   };
 
   const downloadImage = (image: ImageData) => {
