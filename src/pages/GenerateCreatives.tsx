@@ -3,22 +3,68 @@ import React from "react";
 import AppLayout from "@/components/AppLayout";
 import { ChatProvider } from "@/contexts/ChatContext";
 import ChatInterface from "@/components/ChatInterface";
+import ToolPanel from "@/components/ToolPanel";
+import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
+import { Clock, Plus } from "lucide-react";
 
 const GenerateCreatives = () => {
   return (
     <AppLayout>
-      <div className="h-full p-6 max-w-screen-2xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Generate Ad Creatives</h1>
-          <p className="text-gray-400">Use AI to create custom ad creatives</p>
-        </div>
-        
-        <div className="h-[calc(100vh-12rem)] rounded-lg border border-gray-800 shadow-lg overflow-hidden">
-          <ChatProvider>
-            <ChatInterface />
-          </ChatProvider>
-        </div>
-      </div>
+      <SidebarProvider defaultOpen={true}>
+        <ChatProvider>
+          <div className="min-h-screen flex w-full bg-background">
+            {/* History Sidebar */}
+            <Sidebar side="left" variant="sidebar" collapsible="offcanvas">
+              <SidebarHeader>
+                <div className="flex items-center justify-between px-2">
+                  <h2 className="text-lg font-semibold">AI Image Chat</h2>
+                  <SidebarMenuButton asChild size="sm">
+                    <button className="bg-primary/10 text-primary hover:bg-primary/20">
+                      <Plus className="h-4 w-4" />
+                      <span>New Chat</span>
+                    </button>
+                  </SidebarMenuButton>
+                </div>
+              </SidebarHeader>
+              <SidebarContent>
+                <SidebarGroup>
+                  <SidebarGroupLabel>History</SidebarGroupLabel>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton>
+                        <Clock className="h-4 w-4" />
+                        <span>Fashion Ad Campaign</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton>
+                        <Clock className="h-4 w-4" />
+                        <span>Product Showcase</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton>
+                        <Clock className="h-4 w-4" />
+                        <span>Website Banner Design</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroup>
+              </SidebarContent>
+            </Sidebar>
+
+            {/* Main Chat Area */}
+            <main className="flex-1 relative overflow-hidden">
+              <div className="h-screen flex flex-col">
+                <ChatInterface />
+              </div>
+            </main>
+
+            {/* Tool Panel */}
+            <ToolPanel />
+          </div>
+        </ChatProvider>
+      </SidebarProvider>
     </AppLayout>
   );
 };
