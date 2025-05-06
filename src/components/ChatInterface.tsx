@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useChat } from "@/contexts/ChatContext";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
@@ -11,14 +11,15 @@ import { motion } from "framer-motion";
 const ChatInterface: React.FC = () => {
   const { messages } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [responseMode, setResponseMode] = React.useState("auto");
-  const [showBackground, setShowBackground] = React.useState(false);
+  const [responseMode, setResponseMode] = useState("auto");
+  const [showBackground, setShowBackground] = useState(false);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Show background with slight delay for nice fade in
   useEffect(() => {
     setShowBackground(true);
   }, []);
@@ -78,7 +79,7 @@ const ChatInterface: React.FC = () => {
                   <Lightbulb className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
                   <div className="text-sm text-left">
                     <p className="font-medium mb-1">Tip</p>
-                    <p>Try typing <span className="bg-muted/50 px-1.5 py-0.5 rounded text-xs font-mono">/image</span> followed by your description to generate visuals automatically.</p>
+                    <p>Try using the Prompt Assistant panel on the right to craft the perfect prompt for your creative.</p>
                   </div>
                 </div>
               </div>

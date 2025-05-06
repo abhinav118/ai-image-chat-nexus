@@ -4,7 +4,6 @@ import AppLayout from "@/components/AppLayout";
 import { ChatProvider } from "@/contexts/ChatContext";
 import ChatInterface from "@/components/ChatInterface";
 import PromptAssistant from "@/components/PromptAssistant";
-import { Separator } from "@/components/ui/separator";
 
 const GenerateCreatives = () => {
   return (

@@ -112,6 +112,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
                     src={message.image.url}
                     alt={message.image.prompt}
                     className="rounded-lg w-full object-contain max-h-[300px]"
+                    onLoad={() => {
+                      // Auto-scroll when image loads
+                      const messagesContainer = document.querySelector('.overflow-y-auto');
+                      if (messagesContainer) {
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                      }
+                    }}
                   />
                   <div className="mt-3 flex justify-between items-center">
                     <div className="text-xs opacity-80">
