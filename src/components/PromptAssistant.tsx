@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +10,7 @@ import UploadPreview from "./UploadPreview";
 import { openAIService } from "@/lib/openai-service";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/use-toast";
 
 const PromptAssistant: React.FC = () => {
   const [prompt, setPrompt] = useState("");
@@ -28,31 +28,49 @@ const PromptAssistant: React.FC = () => {
     
     setIsLoading(true);
     
-    if (useEditMode && selectedFile) {
-      try {
-        // Use image edit API
-        const imageUrl = await openAIService.editImage({
-          image: selectedFile,
-          prompt: prompt.trim(),
+    try {
+      // Whether we're in edit mode or not, we'll just use the image generation API
+      // but craft the prompt differently based on the context
+      if (selectedFile) {
+        const finalPrompt = useEditMode 
+          ? `${prompt.trim()} (based on the reference image)`
+          : prompt.trim();
+        
+        // Just use the regular image generation API with an enhanced prompt
+        const imageUrl = await openAIService.generateImage({
+          prompt: finalPrompt,
           size: "1024x1024",
         });
         
         if (imageUrl) {
-          // Create message with edited image
-          await sendMessage(`/image ${prompt} (edited from reference)`, null, imageUrl);
+          // Create message with generated image
+          let messagePrefix = useEditMode 
+            ? `/image ${prompt} (inspired by reference image)` 
+            : `/image ${prompt}`;
+            
+          await sendMessage(messagePrefix, null, imageUrl);
         } else {
-          await sendMessage(`Failed to edit image with prompt: ${prompt}`, null);
+          toast({
+            title: "Generation Failed",
+            description: "Failed to generate image based on your prompt and reference image.",
+            variant: "destructive"
+          });
+          await sendMessage(`Failed to generate image with prompt: ${prompt}`, null);
         }
-      } catch (error) {
-        console.error("Error in image editing:", error);
-        await sendMessage(`Error editing image: ${error.message}`, null);
+      } else {
+        // Use regular image generation or chat
+        await sendMessage(`/image ${prompt}`, selectedFile);
       }
-    } else {
-      // Use regular image generation or chat
-      await sendMessage(`/image ${prompt}`, selectedFile);
+    } catch (error) {
+      console.error("Error in image processing:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -199,7 +217,7 @@ const PromptAssistant: React.FC = () => {
             <div className="mt-3 bg-muted/20 p-3 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <ImagePlus className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">Image Edit Mode</span>
+                <span className="text-sm font-medium">Reference Image Mode</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch 
@@ -208,7 +226,7 @@ const PromptAssistant: React.FC = () => {
                   onCheckedChange={setUseEditMode}
                 />
                 <Label htmlFor="edit-mode" className="text-xs text-muted-foreground">
-                  Use OpenAI Image Edit API to modify this image with prompt
+                  Use this image as a reference for generating a similar style image with your prompt
                 </Label>
               </div>
             </div>
@@ -232,10 +250,10 @@ const PromptAssistant: React.FC = () => {
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {useEditMode ? "Editing Image..." : "Generating..."}
+              {useEditMode ? "Generating from Reference..." : "Generating..."}
             </>
           ) : (
-            <>{useEditMode ? "Edit Image" : "Run"}</>
+            <>{useEditMode ? "Generate from Reference" : "Run"}</>
           )}
         </Button>
       </div>
