@@ -49,7 +49,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({ onSelectSuggestio
   };
 
   return (
-    <div className="space-y-2">
+    <div>
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs text-muted-foreground">Prompt suggestions</p>
         <Button 
@@ -63,15 +63,17 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({ onSelectSuggestio
         </Button>
       </div>
       
-      {suggestions.map((suggestion, index) => (
-        <Card 
-          key={index}
-          className="p-2 text-xs bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
-          onClick={() => onSelectSuggestion(suggestion)}
-        >
-          {suggestion}
-        </Card>
-      ))}
+      <div className="grid grid-cols-1 gap-1.5">
+        {suggestions.map((suggestion, index) => (
+          <Card 
+            key={index}
+            className="p-1.5 text-xs bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
+            onClick={() => onSelectSuggestion(suggestion)}
+          >
+            {suggestion}
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };

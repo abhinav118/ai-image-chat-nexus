@@ -16,7 +16,7 @@ const GenerateCreatives = () => {
           </div>
           
           {/* Right sidebar - Prompt Assistant */}
-          <div className="w-80 bg-background/50 h-screen overflow-y-auto">
+          <div className="w-80 flex flex-col h-screen">
             <PromptAssistant />
           </div>
         </div>
