@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { ChatMessage, ChatSettings, defaultSettings, ImageData, FileAttachment } from "@/types/chat";
 import { openAIService } from "@/lib/openai-service";
 import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 // Define the context type
 interface ChatContextType {
@@ -14,10 +15,11 @@ interface ChatContextType {
   isProcessing: boolean;
   clearChat: () => void;
   downloadImage: (image: ImageData) => void;
+  user: any | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
 }
-
-// Maximum number of messages to keep in localStorage
-const MAX_STORED_MESSAGES = 50;
 
 // Create the context
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -27,6 +29,40 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [settings, setSettings] = useState<ChatSettings>(defaultSettings);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [user, setUser] = useState<any | null>(null);
+  const [chatHistoryId, setChatHistoryId] = useState<string | null>(null);
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const fetchSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+      
+      if (session?.user) {
+        loadChatHistory(session.user.id);
+      }
+    };
+    
+    fetchSession();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user || null);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          loadChatHistory(session.user.id);
+        } else if (event === 'SIGNED_OUT') {
+          setMessages([]);
+          setChatHistoryId(null);
+        }
+      }
+    );
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -35,21 +71,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const parsedSettings = JSON.parse(savedSettings);
       setSettings(parsedSettings);
     }
-
-    // Load chat history
-    const savedMessages = localStorage.getItem("chatHistory");
-    if (savedMessages) {
-      try {
-        const parsedMessages = JSON.parse(savedMessages);
-        const messagesWithDates = parsedMessages.map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp),
-        }));
-        setMessages(messagesWithDates);
-      } catch (error) {
-        console.error("Error loading chat history:", error);
-      }
-    }
   }, []);
 
   // Save settings to localStorage when they change
@@ -57,50 +78,100 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem("chatSettings", JSON.stringify(settings));
   }, [settings]);
 
-  // Save messages to localStorage when they change
-  useEffect(() => {
+  // Load chat history from Supabase
+  const loadChatHistory = async (userId: string) => {
     try {
-      // Only keep non-loading messages
-      const messagesToSave = messages
-        .filter(msg => !msg.isLoading)
-        // Limit to most recent messages
-        .slice(-MAX_STORED_MESSAGES);
+      const { data, error } = await supabase
+        .from('user_chat_history')
+        .select('id, messages')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false })
+        .limit(1);
       
-      localStorage.setItem("chatHistory", JSON.stringify(messagesToSave));
-    } catch (error) {
-      // Handle quota exceeded error
-      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-        console.warn("localStorage quota exceeded, clearing older messages");
+      if (error) {
+        console.error('Error loading chat history:', error);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        setChatHistoryId(data[0].id);
         
-        // Clear localStorage and keep only the most recent messages
-        localStorage.clear();
+        const messagesWithDates = data[0].messages.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp),
+        }));
         
-        // Try saving only the latest few messages
-        const reducedMessages = messages
-          .filter(msg => !msg.isLoading)
-          .slice(-20);
-        
-        try {
-          localStorage.setItem("chatHistory", JSON.stringify(reducedMessages));
-        } catch (innerError) {
-          // If still failing, just clear chat history storage
-          console.error("Still cannot save to localStorage, disabling chat history storage");
-          localStorage.removeItem("chatHistory");
-        }
-        
-        toast({
-          title: "Chat history partially cleared",
-          description: "Your chat history was getting too large and has been trimmed.",
-        });
+        setMessages(messagesWithDates);
       } else {
-        console.error("Error saving chat history:", error);
+        // Create new chat history
+        createNewChatHistory(userId);
+      }
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+    }
+  };
+  
+  const createNewChatHistory = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_chat_history')
+        .insert({ user_id: userId })
+        .select('id')
+        .single();
+      
+      if (error) {
+        console.error('Error creating chat history:', error);
+        return;
+      }
+      
+      setChatHistoryId(data.id);
+    } catch (error) {
+      console.error('Error creating chat history:', error);
+    }
+  };
+  
+  // Save messages to Supabase when they change
+  useEffect(() => {
+    const saveMessagesToSupabase = async () => {
+      if (!user || !chatHistoryId || messages.length === 0) return;
+      
+      try {
+        // Filter out loading messages
+        const messagesToSave = messages.filter(msg => !msg.isLoading);
+        
+        const { error } = await supabase
+          .from('user_chat_history')
+          .update({ messages: messagesToSave })
+          .eq('id', chatHistoryId);
+        
+        if (error) {
+          console.error('Error saving chat history:', error);
+        }
+      } catch (error) {
+        console.error('Error saving chat history:', error);
+      }
+    };
+    
+    saveMessagesToSupabase();
+  }, [messages, user, chatHistoryId]);
+
+  const clearChat = async () => {
+    setMessages([]);
+    
+    if (user && chatHistoryId) {
+      try {
+        const { error } = await supabase
+          .from('user_chat_history')
+          .update({ messages: [] })
+          .eq('id', chatHistoryId);
+        
+        if (error) {
+          console.error('Error clearing chat history:', error);
+        }
+      } catch (error) {
+        console.error('Error clearing chat history:', error);
       }
     }
-  }, [messages]);
-
-  const clearChat = () => {
-    setMessages([]);
-    localStorage.removeItem("chatHistory");
   };
 
   const downloadImage = (image: ImageData) => {
@@ -126,6 +197,29 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       reader.readAsDataURL(file);
     });
+  };
+
+  // Save generated image to Supabase
+  const saveGeneratedImage = async (imageUrl: string, prompt: string, size: string, style: string) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('user_generated_images')
+        .insert({
+          user_id: user.id,
+          image_url: imageUrl,
+          prompt,
+          size,
+          style,
+        });
+      
+      if (error) {
+        console.error('Error saving generated image:', error);
+      }
+    } catch (error) {
+      console.error('Error saving generated image:', error);
+    }
   };
 
   const sendMessage = async (content: string, file: File | null = null, preGeneratedImageUrl: string | null = null) => {
@@ -187,6 +281,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (imageUrl) {
+          // Save generated image to Supabase
+          if (user) {
+            saveGeneratedImage(imageUrl, imagePrompt, settings.imageSize, settings.imageStyle);
+          }
+          
           setMessages(prev => 
             prev.map(msg => 
               msg.id === assistantMessage.id 
@@ -277,6 +376,76 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Authentication functions
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Signed in successfully",
+        description: "Welcome back!",
+      });
+      
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Sign in failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+  
+  const signUp = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Account created",
+        description: "Please check your email to verify your account.",
+      });
+      
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Sign up failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+  
+  const signOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Signed out successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Sign out failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   return (
     <ChatContext.Provider value={{ 
       messages, 
@@ -286,7 +455,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sendMessage, 
       isProcessing,
       clearChat,
-      downloadImage
+      downloadImage,
+      user,
+      signIn,
+      signUp,
+      signOut
     }}>
       {children}
     </ChatContext.Provider>
