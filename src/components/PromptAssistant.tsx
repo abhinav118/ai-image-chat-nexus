@@ -2,12 +2,15 @@
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Upload, UploadCloud, RefreshCw, Pencil } from "lucide-react";
+import { Loader2, Upload, UploadCloud, RefreshCw, Pencil, ImagePlus } from "lucide-react";
 import { useChat } from "@/contexts/ChatContext";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import PromptSuggestions from "./PromptSuggestions";
 import UploadPreview from "./UploadPreview";
+import { openAIService } from "@/lib/openai-service";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const PromptAssistant: React.FC = () => {
   const [prompt, setPrompt] = useState("");
@@ -17,16 +20,39 @@ const PromptAssistant: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [useEditMode, setUseEditMode] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim() && !selectedFile) return;
     
     setIsLoading(true);
-    await sendMessage(`/image ${prompt}`, selectedFile);
+    
+    if (useEditMode && selectedFile) {
+      try {
+        // Use image edit API
+        const imageUrl = await openAIService.editImage({
+          image: selectedFile,
+          prompt: prompt.trim(),
+          size: "1024x1024",
+        });
+        
+        if (imageUrl) {
+          // Create message with edited image
+          await sendMessage(`/image ${prompt} (edited from reference)`, null, imageUrl);
+        } else {
+          await sendMessage(`Failed to edit image with prompt: ${prompt}`, null);
+        }
+      } catch (error) {
+        console.error("Error in image editing:", error);
+        await sendMessage(`Error editing image: ${error.message}`, null);
+      }
+    } else {
+      // Use regular image generation or chat
+      await sendMessage(`/image ${prompt}`, selectedFile);
+    }
+    
     setIsLoading(false);
-    // Optional: clear the prompt after sending
-    // setPrompt("");
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -65,14 +91,19 @@ const PromptAssistant: React.FC = () => {
         setFilePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+      
+      // If it's an image, suggest edit mode
+      setUseEditMode(true);
     } else {
       setFilePreview(null);
+      setUseEditMode(false);
     }
   };
 
   const clearFile = () => {
     setSelectedFile(null);
     setFilePreview(null);
+    setUseEditMode(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -163,6 +194,25 @@ const PromptAssistant: React.FC = () => {
               </>
             )}
           </div>
+          
+          {selectedFile && selectedFile.type.startsWith('image/') && (
+            <div className="mt-3 bg-muted/20 p-3 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <ImagePlus className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Image Edit Mode</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="edit-mode" 
+                  checked={useEditMode}
+                  onCheckedChange={setUseEditMode}
+                />
+                <Label htmlFor="edit-mode" className="text-xs text-muted-foreground">
+                  Use OpenAI Image Edit API to modify this image with prompt
+                </Label>
+              </div>
+            </div>
+          )}
         </div>
         
         <div>
@@ -182,10 +232,10 @@ const PromptAssistant: React.FC = () => {
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating...
+              {useEditMode ? "Editing Image..." : "Generating..."}
             </>
           ) : (
-            <>Run</>
+            <>{useEditMode ? "Edit Image" : "Run"}</>
           )}
         </Button>
       </div>

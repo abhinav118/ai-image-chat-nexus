@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ChatMessage, ChatSettings, defaultSettings, ImageData, FileAttachment } from "@/types/chat";
 import { openAIService } from "@/lib/openai-service";
@@ -9,7 +10,7 @@ interface ChatContextType {
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   settings: ChatSettings;
   setSettings: React.Dispatch<React.SetStateAction<ChatSettings>>;
-  sendMessage: (content: string, file?: File | null) => Promise<void>;
+  sendMessage: (content: string, file?: File | null, preGeneratedImageUrl?: string | null) => Promise<void>;
   isProcessing: boolean;
   clearChat: () => void;
   downloadImage: (image: ImageData) => void;
@@ -127,8 +128,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const sendMessage = async (content: string, file: File | null = null) => {
-    if (!content.trim() && !file) return;
+  const sendMessage = async (content: string, file: File | null = null, preGeneratedImageUrl: string | null = null) => {
+    if (!content.trim() && !file && !preGeneratedImageUrl) return;
 
     let fileAttachment: FileAttachment | undefined;
     
@@ -156,16 +157,21 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsProcessing(true);
 
     try {
-      const isImageRequest = content.startsWith("/image");
+      const isImageRequest = content.startsWith("/image") || preGeneratedImageUrl;
       
       if (isImageRequest) {
         const imagePrompt = content.replace("/image", "").trim();
-        const imageUrl = await openAIService.generateImage({
-          prompt: imagePrompt,
-          size: settings.imageSize,
-          style: settings.imageStyle,
-          quality: settings.imageQuality,
-        });
+        let imageUrl = preGeneratedImageUrl;
+        
+        if (!imageUrl) {
+          // Only generate if we don't already have a pre-generated URL
+          imageUrl = await openAIService.generateImage({
+            prompt: imagePrompt,
+            size: settings.imageSize,
+            style: settings.imageStyle,
+            quality: settings.imageQuality,
+          });
+        }
 
         if (imageUrl) {
           setMessages(prev => 
@@ -176,7 +182,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     content: "Here's the image you requested:",
                     isLoading: false,
                     image: {
-                      url: imageUrl,
+                      url: imageUrl!,
                       prompt: imagePrompt,
                       size: settings.imageSize,
                       style: settings.imageStyle,

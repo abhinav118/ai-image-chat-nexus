@@ -27,7 +27,7 @@ serve(async (req) => {
     }
 
     const { action, data } = await req.json();
-    console.log('Parsed request:', { action, data });
+    console.log('Parsed request:', { action, data: { ...data, image: data.image ? 'IMAGE_DATA_HERE' : undefined } });
 
     if (action === 'chat') {
       console.log('Handling chat request');
@@ -35,6 +35,9 @@ serve(async (req) => {
     } else if (action === 'image') {
       console.log('Handling image generation request');
       return await handleImageRequest(OPENAI_API_KEY, data);
+    } else if (action === 'image-edit') {
+      console.log('Handling image edit request');
+      return await handleImageEditRequest(OPENAI_API_KEY, data);
     } else {
       console.warn('Invalid action received:', action);
       throw new Error('Invalid action specified');
@@ -161,6 +164,49 @@ async function handleImageRequest(apiKey, data) {
   if (result.error) {
     console.error('Image generation failed:', result.error);
     throw new Error(result.error.message || 'Error generating image');
+  }
+
+  return new Response(JSON.stringify({
+    imageUrl: result.data?.[0]?.url || null
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+async function handleImageEditRequest(apiKey, data) {
+  const { prompt, size, n, image } = data;
+  console.log('Image edit request with:', { prompt, size, n });
+
+  // Convert base64 to a binary buffer
+  const imageBuffer = Uint8Array.from(atob(image), c => c.charCodeAt(0));
+  
+  // Create form data for multipart/form-data request
+  const formData = new FormData();
+  formData.append('prompt', prompt);
+  formData.append('n', n.toString());
+  formData.append('size', size || '1024x1024');
+  
+  // Add image as form data
+  const imageBlob = new Blob([imageBuffer], { type: 'image/png' });
+  formData.append('image', imageBlob, 'image.png');
+
+  console.log('Sending request to OpenAI image edit API...');
+  
+  const response = await fetch('https://api.openai.com/v1/images/edits', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      // Note: Don't set Content-Type here as it's automatically set with correct boundary in multipart/form-data
+    },
+    body: formData
+  });
+
+  const result = await response.json();
+  console.log('Image edit response:', result);
+
+  if (result.error) {
+    console.error('Image edit failed:', result.error);
+    throw new Error(result.error.message || 'Error editing image');
   }
 
   return new Response(JSON.stringify({

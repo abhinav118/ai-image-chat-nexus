@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -7,6 +6,13 @@ export interface ImageGenerationParams {
   size?: string;
   style?: string;
   quality?: string;
+}
+
+export interface ImageEditParams {
+  image: File;
+  prompt: string;
+  size?: string;
+  n?: number;
 }
 
 export class OpenAIService {
@@ -39,6 +45,42 @@ export class OpenAIService {
       toast({
         title: "Image Generation Failed",
         description: error.message || "An error occurred while generating the image.",
+        variant: "destructive",
+      });
+      
+      return null;
+    }
+  }
+
+  public async editImage(params: ImageEditParams): Promise<string | null> {
+    try {
+      const { data, error } = await supabase.functions.invoke("openai", {
+        body: {
+          action: "image-edit",
+          data: {
+            prompt: params.prompt,
+            size: params.size || "1024x1024",
+            n: params.n || 1,
+            image: await this.fileToBase64(params.image),
+          },
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      return data?.imageUrl || null;
+    } catch (error: any) {
+      console.error("Error editing image:", error);
+      
+      toast({
+        title: "Image Edit Failed",
+        description: error.message || "An error occurred while editing the image.",
         variant: "destructive",
       });
       
