@@ -4,6 +4,7 @@ import { ChatMessage, ChatSettings, defaultSettings, ImageData, FileAttachment }
 import { openAIService } from "@/lib/openai-service";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 
 // Define the context type
 interface ChatContextType {
@@ -23,6 +24,43 @@ interface ChatContextType {
 
 // Create the context
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
+
+// Helper function to convert JSON to ChatMessage[]
+const convertJsonToChatMessages = (jsonMessages: Json): ChatMessage[] => {
+  if (!jsonMessages) return [];
+  
+  try {
+    // If it's already an array, try to convert it
+    if (Array.isArray(jsonMessages)) {
+      return jsonMessages.map(msg => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp as string),
+      })) as ChatMessage[];
+    }
+    // If it's a string, try to parse it
+    else if (typeof jsonMessages === 'string') {
+      const parsed = JSON.parse(jsonMessages);
+      if (Array.isArray(parsed)) {
+        return parsed.map(msg => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp as string),
+        })) as ChatMessage[];
+      }
+    }
+  } catch (error) {
+    console.error('Error converting JSON to ChatMessages:', error);
+  }
+  
+  return [];
+};
+
+// Helper function to convert ChatMessage[] to JSON compatible format
+const convertChatMessagesToJson = (messages: ChatMessage[]): Json => {
+  return messages.map(msg => ({
+    ...msg,
+    timestamp: msg.timestamp.toISOString(),
+  }));
+};
 
 // Create a provider component
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -96,12 +134,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data && data.length > 0) {
         setChatHistoryId(data[0].id);
         
-        const messagesWithDates = data[0].messages.map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp),
-        }));
-        
-        setMessages(messagesWithDates);
+        // Convert JSON messages to ChatMessage[] using helper function
+        const chatMessages = convertJsonToChatMessages(data[0].messages);
+        setMessages(chatMessages);
       } else {
         // Create new chat history
         createNewChatHistory(userId);
@@ -139,9 +174,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Filter out loading messages
         const messagesToSave = messages.filter(msg => !msg.isLoading);
         
+        // Convert ChatMessage[] to JSON compatible format
+        const jsonMessages = convertChatMessagesToJson(messagesToSave);
+        
         const { error } = await supabase
           .from('user_chat_history')
-          .update({ messages: messagesToSave })
+          .update({ messages: jsonMessages })
           .eq('id', chatHistoryId);
         
         if (error) {
@@ -390,8 +428,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "Signed in successfully",
         description: "Welcome back!",
       });
-      
-      return data;
     } catch (error: any) {
       toast({
         title: "Sign in failed",
@@ -415,8 +451,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "Account created",
         description: "Please check your email to verify your account.",
       });
-      
-      return data;
     } catch (error: any) {
       toast({
         title: "Sign up failed",
