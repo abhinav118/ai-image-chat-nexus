@@ -164,13 +164,26 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         let imageUrl = preGeneratedImageUrl;
         
         if (!imageUrl) {
-          // Only generate if we don't already have a pre-generated URL
-          imageUrl = await openAIService.generateImage({
-            prompt: imagePrompt,
-            size: settings.imageSize,
-            style: settings.imageStyle,
-            quality: settings.imageQuality,
-          });
+          // Determine if this should be an image edit (reference-based) or standard generation
+          const isEditRequest = content.includes("reference image") || content.includes("based on the reference");
+          
+          if (file && isEditRequest) {
+            // Use the image edit API when a file is provided and it's an edit request
+            imageUrl = await openAIService.editImage({
+              image: file,
+              prompt: imagePrompt,
+              size: settings.imageSize,
+              n: 1
+            });
+          } else {
+            // Standard image generation
+            imageUrl = await openAIService.generateImage({
+              prompt: imagePrompt,
+              size: settings.imageSize,
+              style: settings.imageStyle,
+              quality: settings.imageQuality,
+            });
+          }
         }
 
         if (imageUrl) {
