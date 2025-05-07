@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ChatMessage, ChatSettings, defaultSettings, ImageData, FileAttachment } from "@/types/chat";
 import { openAIService } from "@/lib/openai-service";
@@ -32,19 +31,39 @@ const convertJsonToChatMessages = (jsonMessages: Json): ChatMessage[] => {
   try {
     // If it's already an array, try to convert it
     if (Array.isArray(jsonMessages)) {
-      return jsonMessages.map(msg => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp as string),
-      })) as ChatMessage[];
+      return jsonMessages.map(msg => {
+        if (typeof msg === 'object' && msg !== null && 'timestamp' in msg) {
+          return {
+            id: String(msg.id || ''),
+            role: String(msg.role || 'user') as ChatMessage['role'],
+            content: String(msg.content || ''),
+            timestamp: new Date(String(msg.timestamp)),
+            isLoading: Boolean(msg.isLoading || false),
+            image: msg.image as ChatMessage['image'],
+            attachment: msg.attachment as ChatMessage['attachment'],
+          };
+        }
+        return null;
+      }).filter(Boolean) as ChatMessage[];
     }
     // If it's a string, try to parse it
     else if (typeof jsonMessages === 'string') {
       const parsed = JSON.parse(jsonMessages);
       if (Array.isArray(parsed)) {
-        return parsed.map(msg => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp as string),
-        })) as ChatMessage[];
+        return parsed.map(msg => {
+          if (typeof msg === 'object' && msg !== null && 'timestamp' in msg) {
+            return {
+              id: String(msg.id || ''),
+              role: String(msg.role || 'user') as ChatMessage['role'],
+              content: String(msg.content || ''),
+              timestamp: new Date(String(msg.timestamp)),
+              isLoading: Boolean(msg.isLoading || false),
+              image: msg.image as ChatMessage['image'],
+              attachment: msg.attachment as ChatMessage['attachment'],
+            };
+          }
+          return null;
+        }).filter(Boolean) as ChatMessage[];
       }
     }
   } catch (error) {
@@ -55,11 +74,40 @@ const convertJsonToChatMessages = (jsonMessages: Json): ChatMessage[] => {
 };
 
 // Helper function to convert ChatMessage[] to JSON compatible format
-const convertChatMessagesToJson = (messages: ChatMessage[]): Json => {
-  return messages.map(msg => ({
-    ...msg,
-    timestamp: msg.timestamp.toISOString(),
-  }));
+const convertChatMessagesToJson = (messages: ChatMessage[]): any => {
+  return messages.map(msg => {
+    // Create a plain object with only the properties we need to store
+    const jsonMsg: Record<string, any> = {
+      id: msg.id,
+      role: msg.role,
+      content: msg.content,
+      timestamp: msg.timestamp.toISOString(),
+    };
+    
+    // Add optional properties only if they exist
+    if (msg.isLoading) {
+      jsonMsg.isLoading = msg.isLoading;
+    }
+    
+    if (msg.image) {
+      jsonMsg.image = {
+        url: msg.image.url,
+        prompt: msg.image.prompt,
+        size: msg.image.size,
+        style: msg.image.style
+      };
+    }
+    
+    if (msg.attachment) {
+      jsonMsg.attachment = {
+        name: msg.attachment.name,
+        type: msg.attachment.type,
+        dataUrl: msg.attachment.dataUrl
+      };
+    }
+    
+    return jsonMsg;
+  });
 };
 
 // Create a provider component
