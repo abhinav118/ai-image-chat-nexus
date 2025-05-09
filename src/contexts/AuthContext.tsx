@@ -62,10 +62,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       console.log("Starting Google sign in process...");
       
+      // Use a more robust redirectTo that ensures it matches what's configured in Google Console
+      const redirectTo = window.location.origin;
+      console.log("Redirect URL:", redirectTo);
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin
+          redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
       
@@ -73,21 +81,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error("Google sign in error:", error);
         toast({
           title: "Authentication Error",
-          description: error.message,
+          description: `${error.message}. Please verify your Google OAuth setup.`,
           variant: "destructive",
         });
         return;
       }
       
       console.log("Sign in initiated successfully:", data);
-      // The actual sign-in process happens via redirect, so we'll return here
-      // The auth state listener will handle the successful sign-in
+      
+      // Show a helpful message since the page will redirect
+      toast({
+        title: "Redirecting to Google",
+        description: "You'll be redirected to sign in with Google...",
+      });
       
     } catch (error) {
       console.error("Sign in error:", error);
       toast({
         title: "Authentication Error",
-        description: "Failed to authenticate with Google. Please try again.",
+        description: "Network error connecting to Google. Please check your internet connection and try again.",
         variant: "destructive",
       });
     } finally {
