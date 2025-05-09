@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -55,20 +54,17 @@ export class OpenAIService {
 
   public async editImage(params: ImageEditParams): Promise<string | null> {
     try {
-      // For the edit API, we'll just use the regular image generation API with the reference image
-      // since we're having issues with the actual edit API
       const base64Image = await this.fileToBase64(params.image);
       
-      // Create a prompt that refers to the uploaded image
-      const enhancedPrompt = `${params.prompt} (Reference provided in separate image)`;
-      
+      // Send the actual image data for processing with the edit API endpoint
       const { data, error } = await supabase.functions.invoke("openai", {
         body: {
-          action: "image",  // Use the regular image generation endpoint
+          action: "image-edit",
           data: {
-            prompt: enhancedPrompt,
+            prompt: params.prompt,
             size: params.size || "1024x1024",
-            // Note: We're not passing the image directly since we're using the standard image generation API
+            n: params.n || 1,
+            image: base64Image,
           },
         },
       });

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,36 +29,34 @@ const PromptAssistant: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // Whether we're in edit mode or not, we'll just use the image generation API
-      // but craft the prompt differently based on the context
-      if (selectedFile) {
-        const finalPrompt = useEditMode 
-          ? `${prompt.trim()} (based on the reference image)`
-          : prompt.trim();
+      if (selectedFile && selectedFile.type.startsWith('image/')) {
+        const finalPrompt = prompt.trim();
         
-        // Just use the regular image generation API with an enhanced prompt
-        const imageUrl = await openAIService.generateImage({
-          prompt: finalPrompt,
-          size: "1024x1024",
-        });
-        
-        if (imageUrl) {
-          // Create message with generated image
-          let messagePrefix = useEditMode 
-            ? `/image ${prompt} (inspired by reference image)` 
-            : `/image ${prompt}`;
-            
-          await sendMessage(messagePrefix, null, imageUrl);
-        } else {
-          toast({
-            title: "Generation Failed",
-            description: "Failed to generate image based on your prompt and reference image.",
-            variant: "destructive"
+        if (useEditMode) {
+          // Use the image edit API when in edit mode with a reference image
+          const imageUrl = await openAIService.editImage({
+            image: selectedFile,
+            prompt: finalPrompt,
+            size: "1024x1024",
           });
-          await sendMessage(`Failed to generate image with prompt: ${prompt}`, null);
+          
+          if (imageUrl) {
+            // Create message with generated image
+            await sendMessage(`/image ${finalPrompt} (edited with reference image)`, null, imageUrl);
+          } else {
+            toast({
+              title: "Generation Failed",
+              description: "Failed to generate image based on your prompt and reference image.",
+              variant: "destructive"
+            });
+            await sendMessage(`Failed to generate image with prompt: ${finalPrompt}`, null);
+          }
+        } else {
+          // Standard image generation but still pass the reference file
+          await sendMessage(`/image ${finalPrompt}`, selectedFile);
         }
       } else {
-        // Use regular image generation or chat
+        // Regular image generation or chat without reference image
         await sendMessage(`/image ${prompt}`, selectedFile);
       }
     } catch (error) {

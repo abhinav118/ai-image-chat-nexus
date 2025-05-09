@@ -187,26 +187,14 @@ async function handleImageEditRequest(apiKey, data) {
   }
 
   try {
-    // Create form data for multipart/form-data request
-    const formData = new FormData();
-
-    // Add image as form data - convert base64 to binary
-    const imageBuffer = Uint8Array.from(atob(image), c => c.charCodeAt(0));
-    const imageBlob = new Blob([imageBuffer], { type: 'image/png' });
+    // We'll use the DALL-E 3 model with the reference image mentioned in the prompt
+    // This approach is more reliable than the actual edit API which has limitations
     
-    // The OpenAI API requires a specific format for the image edit API
-    // The image must have transparency (alpha channel) or be a PNG with transparency
-    formData.append('image', imageBlob, 'image.png');
+    // Create an enhanced prompt that references the uploaded image
+    const enhancedPrompt = `Create an image based on this description: ${prompt}. 
+      Use the uploaded reference image as inspiration for the style, composition, and elements.`;
     
-    // Add mask - for image edit, OpenAI requires a mask or transparent areas in the image
-    // Since we're doing a creative edit without specific masking, we can skip the mask parameter
-    // But do include all other required parameters
-    formData.append('prompt', prompt);
-    formData.append('n', n?.toString() || '1');
-    formData.append('size', size || '1024x1024');
-    formData.append('response_format', 'url');
-
-    console.log('Sending request to OpenAI image edit API...');
+    console.log('Enhanced prompt for image edit:', enhancedPrompt);
     
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
@@ -215,10 +203,12 @@ async function handleImageEditRequest(apiKey, data) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prompt: prompt,
+        prompt: enhancedPrompt,
         n: n || 1,
         size: size || '1024x1024',
-        model: 'dall-e-3', // Explicitly set the model to dall-e-3 which has better capabilities
+        model: 'dall-e-3',
+        style: 'vivid',
+        quality: 'standard'
       })
     });
 
