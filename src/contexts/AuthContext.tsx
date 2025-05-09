@@ -24,15 +24,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log("Auth state change event:", event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
         if (event === 'SIGNED_IN') {
+          console.log("User signed in successfully:", currentSession?.user);
           toast({
             title: "Signed in successfully",
             description: "Welcome back!",
           });
         } else if (event === 'SIGNED_OUT') {
+          console.log("User signed out");
           toast({
             title: "Signed out successfully",
             description: "You have been logged out",
@@ -43,6 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Then get the current session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log("Current session:", currentSession);
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       setLoading(false);
@@ -56,7 +60,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
+      console.log("Starting Google sign in process...");
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin
@@ -64,17 +70,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       
       if (error) {
+        console.error("Google sign in error:", error);
         toast({
           title: "Authentication Error",
           description: error.message,
           variant: "destructive",
         });
+        return;
       }
+      
+      console.log("Sign in initiated successfully:", data);
+      // The actual sign-in process happens via redirect, so we'll return here
+      // The auth state listener will handle the successful sign-in
+      
     } catch (error) {
       console.error("Sign in error:", error);
       toast({
         title: "Authentication Error",
-        description: "Failed to authenticate with Google",
+        description: "Failed to authenticate with Google. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -88,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signOut();
       
       if (error) {
+        console.error("Sign out error:", error);
         toast({
           title: "Sign out Error",
           description: error.message,
