@@ -24,6 +24,19 @@ interface ChatContextType {
 // Create the context
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
+// Helper function to safely convert Json to specific types
+const safeJsonToType = <T,>(value: Json | undefined, fallback: T): T => {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+  
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    return value as unknown as T;
+  }
+  
+  return fallback;
+};
+
 // Helper function to convert JSON to ChatMessage[]
 const convertJsonToChatMessages = (jsonMessages: Json): ChatMessage[] => {
   if (!jsonMessages) return [];
@@ -33,15 +46,41 @@ const convertJsonToChatMessages = (jsonMessages: Json): ChatMessage[] => {
     if (Array.isArray(jsonMessages)) {
       return jsonMessages.map(msg => {
         if (typeof msg === 'object' && msg !== null && 'timestamp' in msg) {
-          return {
+          // Create the base message object
+          const chatMessage: ChatMessage = {
             id: String(msg.id || ''),
             role: String(msg.role || 'user') as ChatMessage['role'],
             content: String(msg.content || ''),
             timestamp: new Date(String(msg.timestamp)),
             isLoading: Boolean(msg.isLoading || false),
-            image: msg.image as ChatMessage['image'],
-            attachment: msg.attachment as ChatMessage['attachment'],
           };
+          
+          // Only add image if it exists
+          if ('image' in msg && msg.image) {
+            const imgData = msg.image as Json;
+            if (typeof imgData === 'object' && !Array.isArray(imgData)) {
+              chatMessage.image = {
+                url: String(imgData.url || ''),
+                prompt: String(imgData.prompt || ''),
+                size: String(imgData.size || ''),
+                style: String(imgData.style || '')
+              };
+            }
+          }
+          
+          // Only add attachment if it exists
+          if ('attachment' in msg && msg.attachment) {
+            const attachData = msg.attachment as Json;
+            if (typeof attachData === 'object' && !Array.isArray(attachData)) {
+              chatMessage.attachment = {
+                name: String(attachData.name || ''),
+                type: String(attachData.type || ''),
+                dataUrl: String(attachData.dataUrl || '')
+              };
+            }
+          }
+          
+          return chatMessage;
         }
         return null;
       }).filter(Boolean) as ChatMessage[];
@@ -52,15 +91,37 @@ const convertJsonToChatMessages = (jsonMessages: Json): ChatMessage[] => {
       if (Array.isArray(parsed)) {
         return parsed.map(msg => {
           if (typeof msg === 'object' && msg !== null && 'timestamp' in msg) {
-            return {
+            // Create the base message object
+            const chatMessage: ChatMessage = {
               id: String(msg.id || ''),
               role: String(msg.role || 'user') as ChatMessage['role'],
               content: String(msg.content || ''),
               timestamp: new Date(String(msg.timestamp)),
               isLoading: Boolean(msg.isLoading || false),
-              image: msg.image as ChatMessage['image'],
-              attachment: msg.attachment as ChatMessage['attachment'],
             };
+            
+            // Only add image if it exists
+            if ('image' in msg && msg.image) {
+              const imgData = msg.image as any;
+              chatMessage.image = {
+                url: String(imgData.url || ''),
+                prompt: String(imgData.prompt || ''),
+                size: String(imgData.size || ''),
+                style: String(imgData.style || '')
+              };
+            }
+            
+            // Only add attachment if it exists
+            if ('attachment' in msg && msg.attachment) {
+              const attachData = msg.attachment as any;
+              chatMessage.attachment = {
+                name: String(attachData.name || ''),
+                type: String(attachData.type || ''),
+                dataUrl: String(attachData.dataUrl || '')
+              };
+            }
+            
+            return chatMessage;
           }
           return null;
         }).filter(Boolean) as ChatMessage[];
