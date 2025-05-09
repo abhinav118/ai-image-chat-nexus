@@ -1,11 +1,17 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Home, Image, Star, User, LogOut, Plus, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -14,8 +20,7 @@ interface AppLayoutProps {
 const AppLayout = ({ children }: AppLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [user, setUser] = useState<any>(null);
-  const { toast } = useToast();
+  const { user, signOut } = useAuth();
   
   const navItems = [
     { name: "Dashboard", path: "/", icon: Home },
@@ -26,44 +31,9 @@ const AppLayout = ({ children }: AppLayoutProps) => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
-
-      // Listen for auth changes
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (event, session) => {
-          setUser(session?.user || null);
-        }
-      );
-
-      return () => subscription.unsubscribe();
-    };
-
-    fetchUser();
-  }, []);
-
   const handleSignOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Signed out successfully",
-        description: "You have been logged out",
-      });
-      
-      navigate('/');
-    } catch (error: any) {
-      console.error("Sign out error:", error);
-      toast({
-        title: "Sign out failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+    await signOut();
+    navigate('/');
   };
 
   return (

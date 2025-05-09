@@ -1,13 +1,12 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import CreativeCard from "@/components/CreativeCard";
 import { mockCreatives, CreativeItem } from "@/data/mockCreatives";
 import { Input } from "@/components/ui/input";
 import { Search, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   DropdownMenu,
@@ -19,9 +18,7 @@ import {
 const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [creatives, setCreatives] = useState<CreativeItem[]>(mockCreatives);
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const { user, signInWithGoogle, loading } = useAuth();
   
   const filteredCreatives = creatives.filter(creative => 
     creative.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -35,51 +32,6 @@ const Dashboard = () => {
         creative.id === id ? { ...creative, isFavorite } : creative
       )
     );
-  };
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
-      setLoading(false);
-
-      // Listen for auth changes
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (event, session) => {
-          setUser(session?.user || null);
-        }
-      );
-
-      return () => subscription.unsubscribe();
-    };
-
-    fetchUser();
-  }, []);
-
-  const handleSignIn = async () => {
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin
-        }
-      });
-      
-      if (error) {
-        toast({
-          title: "Authentication Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Sign in error:", error);
-      toast({
-        title: "Authentication Error",
-        description: "Failed to authenticate with Google",
-        variant: "destructive",
-      });
-    }
   };
 
   return (
@@ -124,7 +76,7 @@ const Dashboard = () => {
               <Button 
                 variant="outline" 
                 className="flex items-center gap-2" 
-                onClick={handleSignIn}
+                onClick={signInWithGoogle}
               >
                 <LogIn className="h-4 w-4" />
                 Sign In
