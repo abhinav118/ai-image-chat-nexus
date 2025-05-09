@@ -4,5 +4,8 @@ project_id = "nzsflibcvrisxjlzuxjn"
 [auth]
 enabled = true
 
+[auth.external.google]
+enabled = true
+
 [functions.auth]
 verify_jwt = false

@@ -1,14 +1,27 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AppLayout from "@/components/AppLayout";
 import CreativeCard from "@/components/CreativeCard";
 import { mockCreatives, CreativeItem } from "@/data/mockCreatives";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, LogIn } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [creatives, setCreatives] = useState<CreativeItem[]>(mockCreatives);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
   
   const filteredCreatives = creatives.filter(creative => 
     creative.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -24,6 +37,51 @@ const Dashboard = () => {
     );
   };
 
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+      setLoading(false);
+
+      // Listen for auth changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          setUser(session?.user || null);
+        }
+      );
+
+      return () => subscription.unsubscribe();
+    };
+
+    fetchUser();
+  }, []);
+
+  const handleSignIn = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      
+      if (error) {
+        toast({
+          title: "Authentication Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Sign in error:", error);
+      toast({
+        title: "Authentication Error",
+        description: "Failed to authenticate with Google",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <AppLayout>
       <div className="p-6 max-w-screen-2xl mx-auto">
@@ -33,14 +91,45 @@ const Dashboard = () => {
             <p className="text-gray-400">Browse and save inspiring ad designs</p>
           </div>
           
-          <div className="relative w-full md:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input 
-              placeholder="Search creatives..." 
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="pl-10 bg-gray-900 border-gray-700"
-            />
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="relative w-full md:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input 
+                placeholder="Search creatives..." 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="pl-10 bg-gray-900 border-gray-700"
+              />
+            </div>
+
+            {loading ? (
+              <div className="h-10 w-10 rounded-full bg-gray-800 animate-pulse"></div>
+            ) : user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="p-0 h-10 w-10 rounded-full">
+                    <Avatar>
+                      <AvatarImage src={user.user_metadata?.avatar_url} />
+                      <AvatarFallback>{user.email?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem className="text-sm font-medium">
+                    {user.email}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2" 
+                onClick={handleSignIn}
+              >
+                <LogIn className="h-4 w-4" />
+                Sign In
+              </Button>
+            )}
           </div>
         </div>
         
