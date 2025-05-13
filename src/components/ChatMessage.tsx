@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useChat } from "@/contexts/ChatContext";
 import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -14,21 +16,34 @@ interface ChatMessageProps {
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const { downloadImage } = useChat();
+  const { user } = useAuth();
   const isUser = message.role === "user";
   const [isFavorite, setIsFavorite] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Check if this image is in favorites on mount
   useEffect(() => {
-    if (message.image) {
-      const existingFavoritesString = localStorage.getItem('favoriteCreatives');
-      const existingFavorites = existingFavoritesString ? JSON.parse(existingFavoritesString) : [];
-      const isFav = existingFavorites.some((fav: any) => 
-        fav.imageUrl === message.image?.url
-      );
-      setIsFavorite(isFav);
-    }
-  }, [message.image]);
+    const checkFavoriteStatus = async () => {
+      if (message.image && user) {
+        try {
+          const { data } = await supabase
+            .from('favorites')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('image_url', message.image.url)
+            .single();
+          
+          setIsFavorite(!!data);
+        } catch (error) {
+          console.error("Error checking favorite status:", error);
+          setIsFavorite(false);
+        }
+      }
+    };
+
+    checkFavoriteStatus();
+  }, [message.image, user]);
   
   const handleFileClick = (dataUrl: string, fileName: string) => {
     const link = document.createElement('a');
@@ -39,45 +54,105 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
     document.body.removeChild(link);
   };
   
-  const handleFavoriteClick = () => {
-    const newState = !isFavorite;
-    setIsFavorite(newState);
+  const handleFavoriteClick = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to save favorites",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    if (message.image) {
-      const favoriteImage = {
-        id: `fav-${Date.now()}`,
-        imageUrl: message.image.url,
-        title: message.image.prompt,
-        prompt: message.image.prompt,
-        tags: ["ai-generated", "chat"],
-        category: "AI Generated",
-        isFavorite: true
-      };
-      
-      // Get existing favorites from localStorage
-      const existingFavoritesString = localStorage.getItem('favoriteCreatives');
-      const existingFavorites = existingFavoritesString ? JSON.parse(existingFavoritesString) : [];
-      
+    if (!message.image) return;
+    
+    setIsLoading(true);
+    const newState = !isFavorite;
+    
+    try {
       if (newState) {
-        // Add to favorites
-        localStorage.setItem('favoriteCreatives', JSON.stringify([...existingFavorites, favoriteImage]));
+        // Check for existing favorite to prevent duplicates
+        const { data: existingFavorites } = await supabase
+          .from('favorites')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('image_url', message.image.url);
+        
+        // If favorite already exists, don't create a duplicate
+        if (existingFavorites && existingFavorites.length > 0) {
+          toast({
+            title: "Already in favorites",
+            description: "This creative is already in your favorites",
+            duration: 2000,
+          });
+          setFavorite(true); // Update UI state to reflect it's favorited
+          setIsLoading(false);
+          return;
+        }
+        
+        // Add to favorites in Supabase
+        const { error } = await supabase
+          .from('favorites')
+          .insert({
+            user_id: user.id,
+            image_url: message.image.url,
+            title: message.image.prompt,
+            prompt: message.image.prompt,
+            image_id: `chat-${Date.now()}`
+          });
+          
+        if (error) {
+          console.error("Error saving favorite:", error);
+          toast({
+            title: "Error",
+            description: "Failed to save favorite",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+        
         toast({
           title: "Added to favorites",
           description: message.image.prompt,
           duration: 2000,
         });
       } else {
-        // Remove from favorites if it exists
-        const updatedFavorites = existingFavorites.filter((fav: any) => 
-          fav.imageUrl !== message.image?.url
-        );
-        localStorage.setItem('favoriteCreatives', JSON.stringify(updatedFavorites));
+        // Remove from favorites in Supabase
+        const { error } = await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('image_url', message.image.url);
+          
+        if (error) {
+          console.error("Error removing favorite:", error);
+          toast({
+            title: "Error",
+            description: "Failed to remove favorite",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+        
         toast({
           title: "Removed from favorites",
-          description: message.image?.prompt,
+          description: message.image.prompt,
           duration: 2000,
         });
       }
+      
+      setFavorite(newState);
+    } catch (error) {
+      console.error("Favorite operation failed:", error);
+      toast({
+        title: "Error",
+        description: "An error occurred while updating favorites",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -158,12 +233,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
                         size="sm"
                         className="flex items-center space-x-1 h-8 bg-background/50"
                         onClick={handleFavoriteClick}
+                        disabled={isLoading}
                       >
                         <Star className={cn(
                           "h-3 w-3", 
                           isFavorite ? "fill-yellow-400 text-yellow-400" : ""
                         )} />
-                        <span className="text-xs">{isFavorite ? "Favorited" : "Favorite"}</span>
+                        <span className="text-xs">{isLoading ? "..." : isFavorite ? "Favorited" : "Favorite"}</span>
                       </Button>
                       <Button
                         variant="outline"
