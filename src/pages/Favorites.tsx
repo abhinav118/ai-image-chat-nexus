@@ -30,7 +30,7 @@ const Favorites = () => {
       }
       
       try {
-        // Fetch favorites from Supabase
+        // Fetch favorites from Supabase for the current signed-in user only
         const { data, error } = await supabase
           .from('favorites')
           .select('*')
