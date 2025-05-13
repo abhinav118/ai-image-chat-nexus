@@ -47,7 +47,7 @@ serve(async (req) => {
           content: `Generate 3 creative prompt ideas for AI image generation for a ${formattedUserType}.`
         }
       ],
-      temperature: a0.7
+      temperature: 0.7
     }
 
     console.log("Sending request to OpenAI")
