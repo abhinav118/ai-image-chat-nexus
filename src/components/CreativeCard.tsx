@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Star, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,25 @@ const CreativeCard = ({
     
     try {
       if (newState) {
+        // Check for existing favorite to prevent duplicates
+        const { data: existingFavorites } = await supabase
+          .from('favorites')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('image_id', id);
+        
+        // If favorite already exists, don't create a duplicate
+        if (existingFavorites && existingFavorites.length > 0) {
+          toast({
+            title: "Already in favorites",
+            description: "This creative is already in your favorites",
+            duration: 2000,
+          });
+          setFavorite(true); // Update UI state to reflect it's favorited
+          setIsLoading(false);
+          return;
+        }
+        
         // Add to favorites in Supabase
         const { error } = await supabase
           .from('favorites')
@@ -75,6 +95,7 @@ const CreativeCard = ({
         const { error } = await supabase
           .from('favorites')
           .delete()
+          .eq('user_id', user.id)
           .eq('image_id', id);
           
         if (error) {
