@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Upload, UploadCloud, RefreshCw, Pencil, ImagePlus } from "lucide-react";
+import { Loader2, Upload, UploadCloud, RefreshCw, Pencil, ImagePlus, UtensilsCrossed } from "lucide-react";
 import { useChat } from "@/contexts/ChatContext";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { openAIService } from "@/lib/openai-service";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const PromptAssistant: React.FC = () => {
   const [prompt, setPrompt] = useState("");
@@ -21,7 +22,9 @@ const PromptAssistant: React.FC = () => {
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [useEditMode, setUseEditMode] = useState(false);
-
+  const { user } = useAuth();
+  const isRestaurantOwner = user?.user_metadata?.user_type === "restaurant_owner";
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim() && !selectedFile) return;
@@ -138,8 +141,21 @@ const PromptAssistant: React.FC = () => {
     <div className="h-full flex flex-col bg-white/5 backdrop-blur-sm">
       {/* Header */}
       <div className="p-4 border-b border-border/30">
-        <h2 className="text-xl font-semibold">Prompt Assistant</h2>
-        <p className="text-sm text-muted-foreground">Create stunning ad creatives</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold">Prompt Assistant</h2>
+            <p className="text-sm text-muted-foreground">
+              {isRestaurantOwner 
+                ? "Create stunning restaurant & food imagery" 
+                : "Create stunning ad creatives"}
+            </p>
+          </div>
+          {isRestaurantOwner && (
+            <div className="bg-yellow-500/20 p-1.5 rounded-full">
+              <UtensilsCrossed className="h-4 w-4 text-yellow-400" />
+            </div>
+          )}
+        </div>
       </div>
       
       {/* Content area - scrollable */}
@@ -154,7 +170,9 @@ const PromptAssistant: React.FC = () => {
           <Textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe what you want to generate..."
+            placeholder={isRestaurantOwner 
+              ? "Describe the food or restaurant scene you want to generate..." 
+              : "Describe what you want to generate..."}
             className="min-h-[80px] bg-background/50 resize-none border-muted"
           />
           
@@ -244,7 +262,12 @@ const PromptAssistant: React.FC = () => {
       {/* Fixed Button Area */}
       <div className="p-4 border-t border-border/30 bg-background/50 backdrop-blur-sm">
         <Button 
-          className="w-full bg-[#9b87f5]/90 hover:bg-[#9b87f5] text-white shadow-sm h-10"
+          className={cn(
+            "w-full text-white shadow-sm h-10",
+            isRestaurantOwner 
+              ? "bg-yellow-600/90 hover:bg-yellow-600" 
+              : "bg-[#9b87f5]/90 hover:bg-[#9b87f5]"
+          )}
           onClick={handleSubmit}
           disabled={(!prompt.trim() && !selectedFile) || isLoading}
         >
@@ -254,7 +277,7 @@ const PromptAssistant: React.FC = () => {
               {useEditMode ? "Generating from Reference..." : "Generating..."}
             </>
           ) : (
-            <>{useEditMode ? "Generate from Reference" : "Run"}</>
+            <>{useEditMode ? "Generate from Reference" : "Generate"}</>
           )}
         </Button>
       </div>

@@ -2,13 +2,14 @@
 import React, { useEffect, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Calendar, Star, Image, Mail, CheckCircle } from "lucide-react";
+import { User, Calendar, Star, Image, Mail, CheckCircle, UtensilsCrossed } from "lucide-react";
 import { mockCreatives } from "@/data/mockCreatives";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface UserStats {
   favoritesCount: number;
@@ -18,6 +19,7 @@ interface UserStats {
 interface UserPreferences {
   emailNotifications: boolean;
   defaultImageSize: string;
+  userType: string;
 }
 
 const Profile = () => {
@@ -30,6 +32,7 @@ const Profile = () => {
   const [preferences, setPreferences] = useState<UserPreferences>({
     emailNotifications: false,
     defaultImageSize: "1024x1024",
+    userType: "general",
   });
   const [loading, setLoading] = useState(true);
   const [joinDate, setJoinDate] = useState<string>("");
@@ -52,7 +55,7 @@ const Profile = () => {
         // Fetch user from ai_image_chat_users table
         const { data: userData, error: userError } = await supabase
           .from("ai_image_chat_users")
-          .select("created_at")
+          .select("created_at, user_type")
           .eq("id", user.id)
           .single();
 
@@ -63,6 +66,12 @@ const Profile = () => {
         // Set join date from ai_image_chat_users or fallback to auth user created_at
         if (userData && userData.created_at) {
           setJoinDate(formatDate(userData.created_at));
+          
+          // Set user type from database
+          setPreferences(prev => ({
+            ...prev,
+            userType: userData.user_type || "general"
+          }));
         } else if (user.created_at) {
           setJoinDate(formatDate(user.created_at));
         }
@@ -81,12 +90,6 @@ const Profile = () => {
           // Using mock data for favorites since there's no favorites designation in the schema
           favoritesCount: mockCreatives.filter(c => c.isFavorite).length,
           generatedCount: generatedCount || 12
-        });
-
-        // For now, we'll use mock preferences until we implement user preferences table
-        setPreferences({
-          emailNotifications: false,
-          defaultImageSize: "1024x1024"
         });
 
       } catch (error) {
@@ -125,6 +128,53 @@ const Profile = () => {
     });
     
     // Future implementation: save to user preferences in database
+  };
+
+  const updateUserType = async (userType: string) => {
+    if (!user) return;
+    
+    setPreferences(prev => ({
+      ...prev,
+      userType
+    }));
+    
+    try {
+      const { error } = await supabase
+        .from("ai_image_chat_users")
+        .update({ user_type: userType })
+        .eq("id", user.id);
+      
+      if (error) {
+        console.error("Error updating user type:", error);
+        toast({
+          title: "Update Failed",
+          description: "Failed to update user type. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Update user_metadata in auth to reflect the change
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { user_type: userType }
+      });
+      
+      if (updateError) {
+        console.error("Error updating user metadata:", updateError);
+      }
+      
+      toast({
+        title: "User Type Updated",
+        description: `You are now set as a ${userType === "restaurant_owner" ? "restaurant owner" : "general user"}`,
+      });
+    } catch (error) {
+      console.error("Error in updating user type:", error);
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const displayName = user ? (
@@ -207,6 +257,30 @@ const Profile = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                {/* User Type Selection */}
+                <div className="space-y-2">
+                  <Label className="text-gray-300">
+                    User Type
+                  </Label>
+                  <RadioGroup 
+                    value={preferences.userType}
+                    onValueChange={updateUserType}
+                    className="flex flex-col space-y-1"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="general" id="general" />
+                      <Label htmlFor="general" className="text-gray-300">General User</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="restaurant_owner" id="restaurant" />
+                      <div className="flex items-center space-x-1">
+                        <Label htmlFor="restaurant" className="text-gray-300">Restaurant Owner</Label>
+                        <UtensilsCrossed className="h-4 w-4 text-yellow-400" />
+                      </div>
+                    </div>
+                  </RadioGroup>
+                </div>
+
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300">Dark Mode</span>
                   <span className="text-xs bg-gray-800 px-2 py-1 rounded flex items-center gap-1">
