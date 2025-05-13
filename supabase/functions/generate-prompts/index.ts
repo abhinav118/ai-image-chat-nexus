@@ -40,7 +40,7 @@ serve(async (req) => {
           content: `You are a creative assistant that generates prompt ideas for AI image generation. 
           The user is a ${formattedUserType}. Generate 3 short, descriptive visual prompt ideas
           tailored specifically for this profession that they could use to generate marketing images.
-          Keep each prompt under 130 characters. Return ONLY a JSON array of strings with no explanation.`
+          Keep each prompt under 130 characters. Return ONLY a JSON array of strings with no explanation or markdown.`
         },
         {
           role: "user",
@@ -73,8 +73,16 @@ serve(async (req) => {
 
     let suggestions = []
     try {
+      // Check if content starts with markdown code block and strip it if needed
+      let jsonContent = content.trim()
+      
+      // Strip markdown code blocks if present
+      if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/```json\n|\n```|```/g, '')
+      }
+      
       // Try to parse the JSON response
-      suggestions = JSON.parse(content)
+      suggestions = JSON.parse(jsonContent)
       
       // Ensure we have an array of strings
       if (!Array.isArray(suggestions)) {
@@ -96,6 +104,7 @@ serve(async (req) => {
       // Fallback: split the text by lines or commas if JSON parsing fails
       suggestions = content
         .replace(/^\s*\[|\]\s*$/g, '') // Remove brackets
+        .replace(/```json\n|\n```|```/g, '') // Remove markdown code blocks
         .split(/",\s*"|',\s*'|\\n/)    // Split by quotes+comma or newlines
         .map(item => item.replace(/^["']|["']$/g, '').trim()) // Remove quotes and trim
         .filter(item => item.length > 0)
