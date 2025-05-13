@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { ChatMessage as ChatMessageType } from "@/types/chat";
 import { cn } from "@/lib/utils";
@@ -111,7 +112,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
             image_url: message.image.url,
             title: message.image.prompt,
             prompt: message.image.prompt,
-            image_id: `chat-${Date.now()}`
+            // Generate a proper UUID instead of using a string format
+            image_id: crypto.randomUUID()
           });
           
         if (error) {
