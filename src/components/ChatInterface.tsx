@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { useChat } from "@/contexts/ChatContext";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
-import { CanvasRevealEffect } from "@/components/ui/canvas-effect";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Lightbulb } from "lucide-react";
 import { motion } from "framer-motion";
@@ -38,19 +37,9 @@ const ChatInterface: React.FC = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1 }}
-          className="absolute inset-0 pointer-events-none opacity-5"
+          className="absolute inset-0 pointer-events-none opacity-5 bg-gradient-to-br from-purple-50 via-blue-50 to-primary-50"
         >
-          <CanvasRevealEffect
-            animationSpeed={0.4}
-            containerClassName="bg-transparent"
-            colors={[
-              [155, 135, 245], // Purple
-              [249, 115, 22],  // Orange
-              [14, 165, 233],  // Blue
-            ]}
-            opacities={[0.3, 0.3, 0.3, 0.5, 0.5, 0.5, 0.8, 0.8, 0.8, 1]}
-            dotSize={2}
-          />
+          {/* Static background gradient instead of canvas effect */}
         </motion.div>
       )}
 
