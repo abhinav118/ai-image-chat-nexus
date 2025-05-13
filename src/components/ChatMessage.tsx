@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { ChatMessage as ChatMessageType } from "@/types/chat";
 import { cn } from "@/lib/utils";
@@ -28,16 +27,22 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
     const checkFavoriteStatus = async () => {
       if (message.image && user) {
         try {
-          const { data } = await supabase
+          console.log("Checking favorite status for:", message.image.url);
+          const { data, error } = await supabase
             .from('favorites')
             .select('id')
             .eq('user_id', user.id)
-            .eq('image_url', message.image.url)
-            .single();
+            .eq('image_url', message.image.url);
           
-          setIsFavorite(!!data);
+          if (error) {
+            console.error("Error checking favorite status:", error);
+            return;
+          }
+          
+          console.log("Favorite check result:", data);
+          setIsFavorite(data && data.length > 0);
         } catch (error) {
-          console.error("Error checking favorite status:", error);
+          console.error("Exception checking favorite status:", error);
           setIsFavorite(false);
         }
       }
@@ -55,7 +60,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
     document.body.removeChild(link);
   };
   
-  const handleFavoriteClick = async () => {
+  const handleFavoriteToggle = async () => {
     if (!user) {
       toast({
         title: "Authentication required",
@@ -72,12 +77,18 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
     
     try {
       if (newState) {
+        console.log("Adding to favorites:", message.image.url);
         // Check for existing favorite to prevent duplicates
-        const { data: existingFavorites } = await supabase
+        const { data: existingFavorites, error: checkError } = await supabase
           .from('favorites')
           .select('id')
           .eq('user_id', user.id)
           .eq('image_url', message.image.url);
+        
+        if (checkError) {
+          console.error("Error checking existing favorites:", checkError);
+          throw checkError;
+        }
         
         // If favorite already exists, don't create a duplicate
         if (existingFavorites && existingFavorites.length > 0) {
@@ -91,6 +102,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
           return;
         }
         
+        console.log("Inserting new favorite with user_id:", user.id);
         // Add to favorites in Supabase
         const { error } = await supabase
           .from('favorites')
@@ -113,12 +125,14 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
           return;
         }
         
+        console.log("Successfully added to favorites");
         toast({
           title: "Added to favorites",
           description: message.image.prompt,
           duration: 2000,
         });
       } else {
+        console.log("Removing from favorites:", message.image.url);
         // Remove from favorites in Supabase
         const { error } = await supabase
           .from('favorites')
@@ -137,6 +151,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
           return;
         }
         
+        console.log("Successfully removed from favorites");
         toast({
           title: "Removed from favorites",
           description: message.image.prompt,
@@ -233,7 +248,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
                         variant="outline"
                         size="sm"
                         className="flex items-center space-x-1 h-8 bg-background/50"
-                        onClick={handleFavoriteClick}
+                        onClick={handleFavoriteToggle}
                         disabled={isLoading}
                       >
                         <Star className={cn(
