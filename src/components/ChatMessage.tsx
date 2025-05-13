@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { ChatMessage as ChatMessageType } from "@/types/chat";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ interface ChatMessageProps {
 const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const { downloadImage } = useChat();
   const { user } = useAuth();
+  const isUser = message.role === "user";
   const [isFavorite, setIsFavorite] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
