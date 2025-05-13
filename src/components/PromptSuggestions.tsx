@@ -1,9 +1,11 @@
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RefreshCw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
 
 interface PromptSuggestionsProps {
   onSelectSuggestion: (suggestion: string) => void;
@@ -47,61 +49,198 @@ const GENERAL_PROMPT_SUGGESTIONS = [
   "Fashion model in striking pose against bold backdrop"
 ];
 
+// User type specific suggestions map for fallback
+const USER_TYPE_SUGGESTIONS = {
+  nailsalon: [
+    "Close-up of elegant nail art with geometric patterns",
+    "Relaxing nail salon interior with soft lighting and comfortable chairs",
+    "Hand model showcasing vibrant nail colors against clean background",
+    "Nail technician applying polish with precision",
+    "Stylish pedicure setup with foot bath and aesthetic decor"
+  ],
+  barber: [
+    "Classic barbershop interior with vintage chairs and exposed brick",
+    "Barber giving precise haircut with professional scissors",
+    "Fresh fade haircut photographed from multiple angles",
+    "Client relaxing with hot towel facial treatment",
+    "Barbershop tools neatly arranged on wooden counter"
+  ],
+  photographer: [
+    "Photographer silhouette against dramatic sunset",
+    "Wedding photographer capturing emotional moment",
+    "Photography studio with professional lighting setup",
+    "Minimalist product photography with clean shadows",
+    "Nature photographer with telephoto lens in scenic landscape"
+  ],
+  boutique: [
+    "Elegant boutique storefront with creative window display",
+    "Stylish clothing rack with color-coordinated selection",
+    "Customer browsing curated collection in modern boutique",
+    "Minimal mannequin display with seasonal fashion",
+    "Cozy boutique interior with designer lighting fixtures"
+  ],
+  fitness: [
+    "Person performing perfect form squat in modern gym",
+    "High-energy group fitness class in action",
+    "Tranquil yoga studio with morning light",
+    "Close-up of athlete preparing for workout",
+    "Gym equipment arranged in clean, motivational space"
+  ],
+  cafe: [
+    "Artisanal coffee being poured with perfect crema",
+    "Cafe counter with freshly baked pastries and rustic decor",
+    "Customer enjoying coffee while working on laptop",
+    "Barista creating intricate latte art",
+    "Cozy cafe corner with bookshelves and comfortable seating"
+  ]
+};
+
 const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({ onSelectSuggestion }) => {
   const { user } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [userType, setUserType] = useState("general");
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
   
-  // Determine if we should use restaurant-specific prompts
-  const isRestaurantOwner = user?.user_metadata?.user_type === "restaurant_owner";
+  // Determine which suggestion pool to use based on user type
+  const getDefaultSuggestions = () => {
+    if (userType === "restaurant_owner" || userType === "restaurant") {
+      return RESTAURANT_PROMPT_SUGGESTIONS;
+    } else if (USER_TYPE_SUGGESTIONS[userType]) {
+      return USER_TYPE_SUGGESTIONS[userType];
+    } else {
+      return GENERAL_PROMPT_SUGGESTIONS;
+    }
+  };
   
-  const promptPool = isRestaurantOwner ? RESTAURANT_PROMPT_SUGGESTIONS : GENERAL_PROMPT_SUGGESTIONS;
-  
-  const [suggestions, setSuggestions] = useState(() => {
+  const [suggestions, setSuggestions] = useState<string[]>(() => {
     // Select 3 random suggestions initially
-    return getRandomSuggestions(3, promptPool);
+    const defaultSuggestions = getDefaultSuggestions();
+    return getRandomSuggestions(3, defaultSuggestions);
   });
+  
+  // Fetch user type from Supabase
+  useEffect(() => {
+    async function fetchUserType() {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from("ai_image_chat_users")
+          .select("user_type")
+          .eq("id", user.id)
+          .single();
+        
+        if (error) throw error;
+        
+        if (data?.user_type) {
+          console.log("Fetched user type:", data.user_type);
+          setUserType(data.user_type);
+          // After setting user type, refresh suggestions
+          refreshSuggestions(true);
+        }
+      } catch (error) {
+        console.error("Error fetching user type:", error);
+      }
+    }
+    
+    fetchUserType();
+  }, [user]);
   
   function getRandomSuggestions(count: number, pool: string[]) {
     const shuffled = [...pool].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, count);
   }
 
-  const refreshSuggestions = () => {
+  const fetchAISuggestions = async () => {
+    if (!user || isLoadingAI) return;
+    
+    setIsLoadingAI(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-prompts', {
+        body: { userType }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.suggestions && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+        console.log("AI-generated suggestions:", data.suggestions);
+        setSuggestions(data.suggestions);
+        return;
+      } else {
+        throw new Error("Invalid response from AI");
+      }
+    } catch (error) {
+      console.error("Error generating AI suggestions:", error);
+      toast({
+        title: "Could not generate custom suggestions",
+        description: "Falling back to default suggestions for your industry",
+        variant: "destructive",
+      });
+      
+      // Fallback to default suggestions
+      const defaultSuggestions = getDefaultSuggestions();
+      setSuggestions(getRandomSuggestions(3, defaultSuggestions));
+    } finally {
+      setIsLoadingAI(false);
+    }
+  };
+
+  const refreshSuggestions = (useAI: boolean = false) => {
     setIsRefreshing(true);
-    // Simulate loading for a smoother UX
-    setTimeout(() => {
-      setSuggestions(getRandomSuggestions(3, promptPool));
-      setIsRefreshing(false);
-    }, 300);
+    
+    // If we should use AI and user is authenticated
+    if (useAI && user) {
+      fetchAISuggestions();
+    } else {
+      // Simulate loading for a smoother UX
+      setTimeout(() => {
+        const defaultSuggestions = getDefaultSuggestions();
+        setSuggestions(getRandomSuggestions(3, defaultSuggestions));
+        setIsRefreshing(false);
+      }, 300);
+    }
   };
 
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs text-muted-foreground">
-          {isRestaurantOwner ? "Restaurant image ideas" : "Prompt suggestions"}
+          {userType !== "general" ? `${userType.replace('_', ' ')} image ideas` : "Prompt suggestions"}
         </p>
         <Button 
           variant="ghost" 
           size="sm" 
           className="h-7 w-7 p-0" 
-          onClick={refreshSuggestions}
-          disabled={isRefreshing}
+          onClick={() => refreshSuggestions(true)}
+          disabled={isRefreshing || isLoadingAI}
+          title="Get AI-suggested prompts"
         >
-          <RefreshCw className={`h-3.5 w-3.5 text-muted-foreground ${isRefreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-3.5 w-3.5 text-muted-foreground ${isRefreshing || isLoadingAI ? 'animate-spin' : ''}`} />
         </Button>
       </div>
       
       <div className="grid grid-cols-1 gap-1.5">
-        {suggestions.map((suggestion, index) => (
-          <Card 
-            key={index}
-            className="p-1.5 text-xs bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
-            onClick={() => onSelectSuggestion(suggestion)}
-          >
-            {suggestion}
-          </Card>
-        ))}
+        {(isRefreshing || isLoadingAI) ? (
+          // Loading state
+          Array.from({ length: 3 }).map((_, index) => (
+            <Card 
+              key={`loading-${index}`}
+              className="p-1.5 text-xs bg-muted/30 animate-pulse h-10"
+            />
+          ))
+        ) : (
+          // Actual suggestions
+          suggestions.map((suggestion, index) => (
+            <Card 
+              key={index}
+              className="p-1.5 text-xs bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
+              onClick={() => onSelectSuggestion(suggestion)}
+            >
+              {suggestion}
+            </Card>
+          ))
+        )}
       </div>
     </div>
   );

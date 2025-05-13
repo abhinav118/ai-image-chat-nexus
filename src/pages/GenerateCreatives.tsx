@@ -5,11 +5,12 @@ import { ChatProvider, useChat } from "@/contexts/ChatContext";
 import ChatInterface from "@/components/ChatInterface";
 import PromptAssistant from "@/components/PromptAssistant";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, User } from "lucide-react";
+import { LogIn, LogOut, User, UtensilsCrossed } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AuthButton = () => {
-  const { user, signOut } = useChat();
+  const { user, signOut } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   return (
@@ -45,7 +46,7 @@ const AuthButton = () => {
 };
 
 const UserInfo = () => {
-  const { user } = useChat();
+  const { user } = useAuth();
   
   if (!user) return null;
   

@@ -129,12 +129,7 @@ const PromptAssistant: React.FC = () => {
   };
 
   const handleSuggestionSelect = (suggestion: string) => {
-    setPrompt(prev => {
-      if (prev.trim()) {
-        return `${prev}, ${suggestion}`;
-      }
-      return suggestion;
-    });
+    setPrompt(suggestion);
   };
 
   return (
