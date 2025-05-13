@@ -85,7 +85,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
             description: "This creative is already in your favorites",
             duration: 2000,
           });
-          setFavorite(true); // Update UI state to reflect it's favorited
+          setIsFavorite(true); // Update UI state to reflect it's favorited
           setIsLoading(false);
           return;
         }
@@ -143,7 +143,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         });
       }
       
-      setFavorite(newState);
+      setIsFavorite(newState);
     } catch (error) {
       console.error("Favorite operation failed:", error);
       toast({
