@@ -17,6 +17,7 @@ interface ChatMessageProps {
 const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const { downloadImage } = useChat();
   const { user } = useAuth();
+  const { toast } = useToast();
   const isUser = message.role === "user";
   const [isFavorite, setIsFavorite] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
