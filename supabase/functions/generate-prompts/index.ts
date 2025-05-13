@@ -40,7 +40,8 @@ serve(async (req) => {
           content: `You are a creative assistant that generates prompt ideas for AI image generation. 
           The user is a ${formattedUserType}. Generate 3 short, descriptive visual prompt ideas
           tailored specifically for this profession that they could use to generate marketing images.
-          Keep each prompt under 130 characters. Return ONLY a JSON array of strings with no explanation or markdown.`
+          Keep each prompt under 130 characters. Return ONLY a JSON array of strings with no explanation or markdown.
+          Do not include any markdown code block formatting like \`\`\`json or \`\`\` in your response.`
         },
         {
           role: "user",

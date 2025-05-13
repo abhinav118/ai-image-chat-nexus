@@ -157,6 +157,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({ onSelectSuggestio
     setIsLoadingAI(true);
     
     try {
+      console.log("Calling generate-prompts function with userType:", userType);
       const { data, error } = await supabase.functions.invoke('generate-prompts', {
         body: { userType }
       });
@@ -190,14 +191,14 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({ onSelectSuggestio
     }
   };
 
-  const refreshSuggestions = (useAI: boolean = false) => {
+  const refreshSuggestions = (useAI: boolean = true) => {
     setIsRefreshing(true);
     
-    // If we should use AI and user is authenticated
+    // Always try to use AI if user is authenticated
     if (useAI && user) {
       fetchAISuggestions();
     } else {
-      // Simulate loading for a smoother UX
+      // If not authenticated or AI is not requested, use default suggestions
       setTimeout(() => {
         const defaultSuggestions = getDefaultSuggestions();
         setSuggestions(getRandomSuggestions(3, defaultSuggestions));
