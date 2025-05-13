@@ -5,7 +5,7 @@ import CreativeCard from "@/components/CreativeCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Star, Loader2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface FavoriteItem {
   id: string;
