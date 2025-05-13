@@ -163,9 +163,12 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({ onSelectSuggestio
       
       if (error) throw error;
       
+      console.log("Response from generate-prompts:", data);
+      
       if (data?.suggestions && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
         console.log("AI-generated suggestions:", data.suggestions);
         setSuggestions(data.suggestions);
+        setIsRefreshing(false);
         return;
       } else {
         throw new Error("Invalid response from AI");
@@ -183,6 +186,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({ onSelectSuggestio
       setSuggestions(getRandomSuggestions(3, defaultSuggestions));
     } finally {
       setIsLoadingAI(false);
+      setIsRefreshing(false);
     }
   };
 
