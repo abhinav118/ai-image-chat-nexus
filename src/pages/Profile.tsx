@@ -9,7 +9,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface UserStats {
   favoritesCount: number;
@@ -21,6 +27,34 @@ interface UserPreferences {
   defaultImageSize: string;
   userType: string;
 }
+
+// Function to get emoji by user type
+const getUserTypeEmoji = (type: string): string => {
+  switch (type) {
+    case 'restaurant_owner': return '🍴';
+    case 'nailsalon_owner': return '💅';
+    case 'barber_owner': return '💈';
+    case 'photographer': return '📸';
+    case 'boutique_owner': return '🛍️';
+    case 'fitness_coach': return '🏋️';
+    case 'cafe_owner': return '☕';
+    default: return '👤';
+  }
+};
+
+// Function to get user type label
+const getUserTypeLabel = (type: string): string => {
+  switch (type) {
+    case 'restaurant_owner': return 'Restaurant Owner';
+    case 'nailsalon_owner': return 'Nail Salon Owner';
+    case 'barber_owner': return 'Barbershop Owner';
+    case 'photographer': return 'Photographer';
+    case 'boutique_owner': return 'Boutique Owner';
+    case 'fitness_coach': return 'Fitness Coach';
+    case 'cafe_owner': return 'Cafe or Bakery Owner';
+    default: return 'General User';
+  }
+};
 
 const Profile = () => {
   const { user } = useAuth();
@@ -165,7 +199,7 @@ const Profile = () => {
       
       toast({
         title: "User Type Updated",
-        description: `You are now set as a ${userType === "restaurant_owner" ? "restaurant owner" : "general user"}`,
+        description: `You are now set as a ${getUserTypeLabel(userType)}`,
       });
     } catch (error) {
       console.error("Error in updating user type:", error);
@@ -257,28 +291,74 @@ const Profile = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {/* User Type Selection */}
+                {/* User Type Selection - Updated to use dropdown */}
                 <div className="space-y-2">
                   <Label className="text-gray-300">
                     User Type
                   </Label>
-                  <RadioGroup 
-                    value={preferences.userType}
-                    onValueChange={updateUserType}
-                    className="flex flex-col space-y-1"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="general" id="general" />
-                      <Label htmlFor="general" className="text-gray-300">General User</Label>
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={preferences.userType}
+                      onValueChange={updateUserType}
+                    >
+                      <SelectTrigger className="w-full bg-gray-800 border-gray-700 text-white">
+                        <SelectValue placeholder="Select user type" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                        <SelectItem value="general">
+                          <div className="flex items-center gap-2">
+                            <span>👤</span>
+                            <span>General User</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="restaurant_owner">
+                          <div className="flex items-center gap-2">
+                            <span>🍴</span>
+                            <span>Restaurant Owner</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="nailsalon_owner">
+                          <div className="flex items-center gap-2">
+                            <span>💅</span>
+                            <span>Nail Salon Owner</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="barber_owner">
+                          <div className="flex items-center gap-2">
+                            <span>💈</span>
+                            <span>Barbershop Owner</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="photographer">
+                          <div className="flex items-center gap-2">
+                            <span>📸</span>
+                            <span>Photographer</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="boutique_owner">
+                          <div className="flex items-center gap-2">
+                            <span>🛍️</span>
+                            <span>Boutique Owner</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="fitness_coach">
+                          <div className="flex items-center gap-2">
+                            <span>🏋️</span>
+                            <span>Fitness Coach</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="cafe_owner">
+                          <div className="flex items-center gap-2">
+                            <span>☕</span>
+                            <span>Cafe or Bakery Owner</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="text-2xl" aria-hidden="true">
+                      {getUserTypeEmoji(preferences.userType)}
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="restaurant_owner" id="restaurant" />
-                      <div className="flex items-center space-x-1">
-                        <Label htmlFor="restaurant" className="text-gray-300">Restaurant Owner</Label>
-                        <UtensilsCrossed className="h-4 w-4 text-yellow-400" />
-                      </div>
-                    </div>
-                  </RadioGroup>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between">
