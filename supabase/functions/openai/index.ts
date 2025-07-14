@@ -27,8 +27,8 @@ serve(async (req) => {
     console.log('OpenAI request received:', requestBody)
 
     // Handle image generation requests
-    if (requestBody.type === 'image' || requestBody.prompt) {
-      const prompt = requestBody.prompt || requestBody.message
+    if (requestBody.action === 'image' && requestBody.data) {
+      const { prompt, size = '1024x1024', quality = 'standard' } = requestBody.data
       
       if (!prompt) {
         return new Response(
@@ -46,11 +46,11 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-image-1',
+          model: 'dall-e-3',
           prompt: prompt,
           n: 1,
-          size: '1024x1024',
-          quality: 'standard',
+          size: size,
+          quality: quality,
         }),
       })
 
@@ -81,48 +81,111 @@ serve(async (req) => {
     }
 
     // Handle chat completion requests
-    const messages = requestBody.messages || [
-      { role: 'user', content: requestBody.message || requestBody.prompt }
-    ]
+    if (requestBody.action === 'chat' && requestBody.data) {
+      const messages = requestBody.data.messages || []
 
-    console.log('Processing chat completion request')
+      if (!messages || messages.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'Missing messages for chat request' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
 
-    const chatResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: messages,
-        temperature: 0.7,
-      }),
-    })
+      console.log('Processing chat completion request')
 
-    console.log('OpenAI chat API response status:', chatResponse.status)
+      const chatResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: messages,
+          temperature: 0.7,
+        }),
+      })
 
-    if (!chatResponse.ok) {
-      const errorData = await chatResponse.json().catch(() => ({}))
-      console.error('OpenAI chat API error:', errorData)
+      console.log('OpenAI chat API response status:', chatResponse.status)
+
+      if (!chatResponse.ok) {
+        const errorData = await chatResponse.json().catch(() => ({}))
+        console.error('OpenAI chat API error:', errorData)
+        return new Response(
+          JSON.stringify({ 
+            error: 'Failed to process chat request', 
+            details: errorData.error?.message || 'Unknown error' 
+          }),
+          { status: chatResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      const chatData = await chatResponse.json()
+      console.log('Chat completion successful')
+
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to process chat request', 
-          details: errorData.error?.message || 'Unknown error' 
+          response: chatData.choices[0]?.message?.content,
+          success: true 
         }),
-        { status: chatResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const chatData = await chatResponse.json()
-    console.log('Chat completion successful')
+    // Handle legacy format for backward compatibility
+    if (requestBody.type === 'image' || requestBody.prompt) {
+      const prompt = requestBody.prompt || requestBody.message
+      
+      if (!prompt) {
+        return new Response(
+          JSON.stringify({ error: 'Missing prompt for image generation' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      console.log('Generating image with legacy format, prompt:', prompt)
+
+      const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'dall-e-3',
+          prompt: prompt,
+          n: 1,
+          size: '1024x1024',
+          quality: 'standard',
+        }),
+      })
+
+      if (!imageResponse.ok) {
+        const errorData = await imageResponse.json().catch(() => ({}))
+        console.error('OpenAI image API error:', errorData)
+        return new Response(
+          JSON.stringify({ 
+            error: 'Failed to generate image', 
+            details: errorData.error?.message || 'Unknown error' 
+          }),
+          { status: imageResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      const imageData = await imageResponse.json()
+      
+      return new Response(
+        JSON.stringify({ 
+          imageUrl: imageData.data[0]?.url,
+          success: true 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     return new Response(
-      JSON.stringify({ 
-        response: chatData.choices[0]?.message?.content,
-        success: true 
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: 'Invalid request format' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
